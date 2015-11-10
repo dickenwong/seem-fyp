@@ -107,6 +107,12 @@ dataMiningControllers.controller('PairFinderCtrl',
                 new Date($scope.startDate),
                 new Date($scope.endDate)
             ).then(function(scores) {
+                scores.sort(function(a, b) {
+                    if (isNaN(a.score) && isNaN(a.score)) return 0;
+                    if (isNaN(a.score)) return 1;
+                    if (isNaN(b.score)) return -1;
+                    return a.score > b.score? 1 : -1;
+                });
                 $scope.scores = scores;
                 $scope.message = null;
             }, function() {

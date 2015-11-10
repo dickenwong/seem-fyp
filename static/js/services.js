@@ -92,8 +92,8 @@ dataMiningServices.factory('PairCalculator', ['$q',
 			var dateCount = 0;
 			dates.forEach(function(date) {
 				if (!stockData1[date] || !stockData2[date]) return;
-				var close1 = stockData1[date].Close;
-				var close2 = stockData2[date].Close;
+				var close1 = +stockData1[date].Close;
+				var close2 = +stockData2[date].Close;
 				var delta = close1 - close2;
 				var sqDelta = delta * delta;
 				sumOfSqDelta += sqDelta;
@@ -120,10 +120,10 @@ dataMiningServices.factory('PairCalculator', ['$q',
 				if (!nextDay) return;
 				if (!stockData1[date] || !stockData2[date]) return;
 				if (!stockData1[nextDay] || !stockData2[nextDay]) return;
-				var day1close1 = stockData1[date].Close;
-				var day2close1 = stockData1[nextDay].Close;
-				var day1close2 = stockData2[date].Close;
-				var day2close2 = stockData2[nextDay].Close;
+				var day1close1 = +stockData1[date].Close;
+				var day2close1 = +stockData1[nextDay].Close;
+				var day1close2 = +stockData2[date].Close;
+				var day2close2 = +stockData2[nextDay].Close;
 				var percentChange1 = (day2close1 - day1close1) / day1close1;
 				var percentChange2 = (day2close2 - day1close2) / day1close2;
 				var delta = percentChange1 - percentChange2;
