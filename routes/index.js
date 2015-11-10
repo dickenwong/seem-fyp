@@ -5,11 +5,11 @@ var PairFinder = require('../models/pair-finder');
 
 router.get('/', function (req, res) {
 
-	res.sendFile(express.static(path.join(__dirname, 'static/html/data-mining.html')));
+	res.sendFile(path.join(__dirname, '../static/html/data-mining.html'));
 });
 
 router.get('/pair/', function (req, res) {
-	res.sendFile(express.static(path.join(__dirname, 'static/html/find-pair.html')));
+	res.sendFile(path.join(__dirname, '../static/html/find-pair.html'));
 });
 
 router.get('/quotes/:stockCode/', function (req, res) {
