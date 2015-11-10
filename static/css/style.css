@@ -1,0 +1,23 @@
+
+.input-yql-section .input-wrapper {
+	max-width: 280px;
+	margin: 0 auto;
+}
+.input-yql-section .form-control {
+	margin: 2px 0;
+}
+.input-yql-section select.form-control,
+.input-yql-section input.form-control {
+	padding: 0 30px;
+	letter-spacing: .5px;
+}
+.input-yql-section button.btn {
+	min-width: 180px;
+	width: 70%;
+}
+.input-yql-section .radio-wrapper {
+	text-align: left;
+}
+.input-yql-section select.form-control.placeholder {
+	color: #BBB;
+}
