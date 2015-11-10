@@ -3,11 +3,12 @@ var router = express.Router();
 var PairFinder = require('../models/pair-finder');
 
 router.get('/', function (req, res) {
-	res.sendFile('./static/html/data-mining.html');
+
+	res.sendFile(express.static(path.join(__dirname, 'static/html/data-mining.html')));
 });
 
 router.get('/pair/', function (req, res) {
-	res.sendFile('./static/html/find-pair.html');
+	res.sendFile(express.static(path.join(__dirname, 'static/html/find-pair.html')));
 });
 
 router.get('/quotes/:stockCode/', function (req, res) {
