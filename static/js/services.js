@@ -79,17 +79,43 @@ dataMiningServices.factory('PairCalculator', ['$q',
 			return dataByDate;
 		};
 
-		var byLeastSquare = function(stockData1, stockData2) {
-			stockData1 = _toDataByDate(stockData1);
-			stockData2 = _toDataByDate(stockData2);
-			var dates1 = Object.keys(stockData1);
-			var dates2 = Object.keys(stockData2);
+		var _mean = function(stockData) {
+			var dayCounts = 0;
+			return stockData.reduce(function(prev, current) {
+				if (!current.Close) return;
+				dayCounts += 1;
+				return prev + Number(current.Close)
+			}, 0) / dayCounts;
+		};
+
+		var _std = function(stockData) {
+			var mean = _mean(stockData);
+			var dayCounts = 0;
+			var variance = stockData.reduce(function(prev, current) {
+				if (!current.Close) return;
+				dayCounts += 1;
+				var delta = Number(current.Close) - mean;
+				return prev + delta * delta
+			}, 0) / (dayCounts + 1);
+			return Math.sqrt(variance);
+		};
+
+		var _mergeDates = function(stockDataByMonth1, stockDataByMonth2) {
+			var dates1 = Object.keys(stockDataByMonth1);
+			var dates2 = Object.keys(stockDataByMonth2);
 			var dates = dates1.concat(dates2.filter(function(date) {
 				return dates1.indexOf(date) == -1;
 			}));
+			return dates;
+		};
+
+		var byLeastSquare = function(stockData1, stockData2) {
+			stockData1 = _toDataByDate(stockData1);
+			stockData2 = _toDataByDate(stockData2);
+			var dates = _mergeDates(stockData1, stockData2);
 
 			var sumOfSqDelta = 0;
-			var dateCount = 0;
+			var dayCounts = 0;
 			dates.forEach(function(date) {
 				if (!stockData1[date] || !stockData2[date]) return;
 				var close1 = +stockData1[date].Close;
@@ -97,24 +123,20 @@ dataMiningServices.factory('PairCalculator', ['$q',
 				var delta = close1 - close2;
 				var sqDelta = delta * delta;
 				sumOfSqDelta += sqDelta;
-				dateCount += 1;
+				dayCounts += 1;
 			});
-			var avgSqDelta = sumOfSqDelta / dateCount;
-			return avgSqDelta;
+			var avgSqDelta = sumOfSqDelta / dayCounts;
+			return [avgSqDelta, dayCounts];
 		};
 
 		var byLeastSquareDeltaPercentChange = function(stockData1, stockData2) {
 			stockData1 = _toDataByDate(stockData1);
 			stockData2 = _toDataByDate(stockData2);
-			var dates1 = Object.keys(stockData1);
-			var dates2 = Object.keys(stockData2);
-			var dates = dates1.concat(dates2.filter(function(date) {
-				return dates1.indexOf(date) == -1;
-			}));
+			var dates = _mergeDates(stockData1, stockData2);
 			dates.sort(function(a, b){return new Date(a) - new Date(b);});
 
 			var sumOfSqDelta = 0;
-			var dateCount = 0;
+			var dayCounts = 0;
 			dates.forEach(function(date, i) {
 				var nextDay = dates[i + 1];
 				if (!nextDay) return;
@@ -129,15 +151,43 @@ dataMiningServices.factory('PairCalculator', ['$q',
 				var delta = percentChange1 - percentChange2;
 				var sqDelta = delta * delta;
 				sumOfSqDelta += sqDelta;
-				dateCount += 1;
+				dayCounts += 1;
 			});
-			var avgSqDelta = sumOfSqDelta / dateCount;
-			return avgSqDelta;
+			var avgSqDelta = sumOfSqDelta / dayCounts;
+			return [avgSqDelta, dayCounts];
+		};
+
+		var byLeastSquareDeltaOfNormalized = function(stockData1, stockData2) {
+			var mean1 = _mean(stockData1);
+			var std1 = _std(stockData1);
+			var mean2 = _mean(stockData2);
+			var std2 = _std(stockData2);
+
+			stockData1 = _toDataByDate(stockData1);
+			stockData2 = _toDataByDate(stockData2);
+			var dates = _mergeDates(stockData1, stockData2);
+			
+			var sumOfSqDelta = 0;
+			var dayCounts = 0;
+			dates.forEach(function(date) {
+				if (!stockData1[date] || !stockData2[date]) return;
+				var close1 = +stockData1[date].Close;
+				var close2 = +stockData2[date].Close;
+				var normalized1 = (close1 - mean1) / std1;
+				var normalized2 = (close2 - mean2) / std2;
+				var delta = normalized1 - normalized2;
+				var sqDelta = delta * delta;
+				sumOfSqDelta += sqDelta;
+				dayCounts += 1;
+			});
+			var avgSqDelta = sumOfSqDelta / dayCounts;
+			return [avgSqDelta, dayCounts];
 		};
 
 		return {
 			'byLeastSquare': byLeastSquare,
-			'byLeastSquareDeltaPercentChange': byLeastSquareDeltaPercentChange
+			'byLeastSquareDeltaPercentChange': byLeastSquareDeltaPercentChange,
+			'byLeastSquareDeltaOfNormalized': byLeastSquareDeltaOfNormalized
 		};
 	}
 ]);
@@ -177,11 +227,12 @@ dataMiningServices.factory('PairCrawler',
 				pool.forEach(function(stock1, i) {
 					pool.forEach(function(stock2, j) {
 						if (j <= i) return;
-						var score = PairCalculator[ruleFuncName](dataset[i], dataset[j]);
+						var result = PairCalculator[ruleFuncName](dataset[i], dataset[j]);
 						scores.push({
 							stock1: stock1,
 							stock2: stock2,
-							score: score
+							score: result[0],
+							dayCounts: result[1]
 						});
 					});
 				});

@@ -72,14 +72,16 @@
 					<tr>
 						<th style="width: 25%">Stock 1</th>
 						<th style="width: 25%">Stock 2</th>
-						<th style="width: 50%">Score</th>
+						<th style="width: 38%">Score</th>
+						<th style="width: 12%">Day Counts</th>
 					</tr>
 				</thead>
 				<tbody>
-					<tr ng-repeat="score in scores | orderBy:'score'">
+					<tr ng-repeat="score in scores | orderBy:'score'" ng-click="openComparingPage(score.stock1, score.stock2)" style="cursor: pointer;">
 						<td ng-bind="score.stock1"></td>
 						<td ng-bind="score.stock2"></td>
 						<td ng-bind="score.score"></td>
+						<td ng-bind="score.dayCounts"></td>
 					</tr>
 				</tbody>
 			</table>

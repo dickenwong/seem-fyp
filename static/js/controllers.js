@@ -46,7 +46,9 @@ dataMiningControllers.controller('DataMiningCtrl', ['$scope', 'YQLHelper',
 
 dataMiningControllers.controller('PairFinderCtrl',
     ['$scope', 'YQLHelper', 'PairCalculator', '$q', 'PairCrawler', 'StockCategories',
-    function ($scope, YQLHelper, PairCalculator, $q, PairCrawler, StockCategories) {
+     '$window',
+    function ($scope, YQLHelper, PairCalculator, $q, PairCrawler, StockCategories,
+              $window) {
 
         $scope.calculationRules = Object.keys(PairCalculator).map(function(funcName) {
             var ruleName = funcName.replace(/([A-Z])/g, ' $1').slice(funcName.indexOf('by ') + 3);
@@ -80,13 +82,11 @@ dataMiningControllers.controller('PairFinderCtrl',
             }
             var promise1 = getDataPromise($scope.stockCode1);
             var promise2 = getDataPromise($scope.stockCode2);
-            console.log(promise1);
             $q.all([promise1, promise2]).then(function(responses) {
                 var score = PairCalculator.byLeastSquare(
                     responses[0].data.results,
                     responses[1].data.results
                 );
-                console.log(score);
             });
 
         };
@@ -118,6 +118,13 @@ dataMiningControllers.controller('PairFinderCtrl',
             }, function() {
                 $scope.message = 'Error! Please try again.';
             });
+        };
+
+
+        $scope.openComparingPage = function(stock1, stock2) {
+            var url = 'https://hk.finance.yahoo.com/q/bc?t=2y&s={stock1}&l=on&z=l&q=l&c={stock2}&ql=1';
+            url = url.replace('{stock1}', stock1).replace('{stock2}', stock2);
+            $window.open(url);
         };
 
     }]
