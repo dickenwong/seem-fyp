@@ -46,9 +46,9 @@ dataMiningControllers.controller('DataMiningCtrl', ['$scope', 'YQLHelper',
 
 dataMiningControllers.controller('PairFinderCtrl',
     ['$scope', 'YQLHelper', 'PairCalculator', '$q', 'PairCrawler', 'StockCategories',
-     '$window',
+     '$window', 'google',
     function ($scope, YQLHelper, PairCalculator, $q, PairCrawler, StockCategories,
-              $window) {
+              $window, google) {
 
         $scope.calculationRules = Object.keys(PairCalculator).map(function(funcName) {
             var ruleName = funcName.replace(/([A-Z])/g, ' $1').slice(funcName.indexOf('by ') + 3);
@@ -125,6 +125,47 @@ dataMiningControllers.controller('PairFinderCtrl',
             var url = 'https://hk.finance.yahoo.com/q/bc?t=2y&s={stock1}&l=on&z=l&q=l&c={stock2}&ql=1';
             url = url.replace('{stock1}', stock1).replace('{stock2}', stock2);
             $window.open(url);
+        };
+
+        $scope.drawGraph = function(dataset) {
+            if (!dataset) return;
+            var baseOptions = {
+                legend: 'none',
+                width: '650',
+                height: 450,
+                lineWidth: 1
+            };
+            var data = new google.visualization.DataTable();
+            data.addColumn('number', 'Day');
+            data.addColumn('number');
+            data.addRows(dataset.map(function(row) {
+                return [row[0], row[1]];
+            }));
+
+            var data2 = new google.visualization.DataTable();
+            data2.addColumn('number', 'Day');
+            data2.addColumn('number', 'Stock1');
+            data2.addColumn('number', 'Stock2');
+            data2.addRows(dataset.map(function(row) {
+                return [row[0], row[2], row[3]];
+            }));
+
+            var chart = new google.charts.Line(angular.element('.graph-1')[0]);
+            google.visualization.events.addOneTimeListener(chart, 'ready', function() {
+                var chart2 = new google.charts.Line(angular.element('.graph-2')[0]);
+                chart2.draw(data2, baseOptions);
+            });
+            chart.draw(data, baseOptions);
+
+        };
+
+        $scope.clickRowData = function(score) {
+            if (!score.dataset) {
+                $scope.openComparingPage(score.stock1, scorestock2);
+                return;
+            }
+            $scope.drawGraph(score.dataset);
+            $('.modal').modal('show');
         };
 
     }]

@@ -169,6 +169,7 @@ dataMiningServices.factory('PairCalculator', ['$q',
 			
 			var sumOfSqDelta = 0;
 			var dayCounts = 0;
+			var dataset = [];
 			dates.forEach(function(date) {
 				if (!stockData1[date] || !stockData2[date]) return;
 				var close1 = +stockData1[date].Close;
@@ -179,9 +180,10 @@ dataMiningServices.factory('PairCalculator', ['$q',
 				var sqDelta = delta * delta;
 				sumOfSqDelta += sqDelta;
 				dayCounts += 1;
+				dataset.push([dayCounts, delta, normalized1, normalized2]);
 			});
 			var avgSqDelta = sumOfSqDelta / dayCounts;
-			return [avgSqDelta, dayCounts];
+			return [avgSqDelta, dayCounts, dataset];
 		};
 
 		return {
@@ -232,7 +234,8 @@ dataMiningServices.factory('PairCrawler',
 							stock1: stock1,
 							stock2: stock2,
 							score: result[0],
-							dayCounts: result[1]
+							dayCounts: result[1],
+							dataset: result[2],
 						});
 					});
 				});
@@ -259,6 +262,14 @@ dataMiningServices.factory('StockCategories', [function(){
 		{
 			name: 'Properties',
 			stocks: '0012.HK, 0016.HK, 0017.HK, 0020.HK, 0021.HK, 0028.HK, 0034.HK, 0035.HK, 0041.HK, 0050.HK, 0051.HK, 0059.HK, 0063.HK, 0081.HK, 0088.HK, 0095.HK, 0112.HK, 0115.HK, 0119.HK, 0123.HK, 0124.HK, 0127.HK, 0129.HK, 0160.HK, 0163.HK, 0169.HK, 0173.HK, 0183.HK, 0190.HK, 0199.HK'
+		},
+		{
+			name: 'Investments & Assets Management',
+			stocks: '0053.HK, 0068.HK, 0080.HK, 0120.HK, 0133.HK, 0165.HK, 0174.HK, 0204.HK, 0273.HK, 0286.HK, 0310.HK, 0339.HK, 0356.HK, 0372.HK, 0378.HK, 0383.HK, 0412.HK, 0428.HK, 0430.HK, 0508.HK, 0575.HK, 0612.HK, 0613.HK, 0619.HK, 0666.HK, 0721.HK, 0768.HK, 0770.HK, 0806.HK, 0810.HK'
+		},
+		{
+			name: 'E-Commerce & Internet Services',
+			stocks: '0250.HK, 0327.HK, 0395.HK, 0400.HK, 0434.HK, 0484.HK, 0536.HK, 0543.HK, 0673.HK, 0700.HK, 0777.HK, 0799.HK, 1022.HK, 1026.HK, 1094.HK, 1980.HK, 2100.HK, 2280.HK, 6899.HK, 8007.HK, 8026.HK, 8081.HK, 8121.HK, 8206.HK, 8255.HK, 8266.HK, 8267.HK, 8317.HK, 8361.HK, 8400.HK'
 		}
 	];
 }])

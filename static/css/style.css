@@ -21,3 +21,22 @@
 .input-yql-section select.form-control.placeholder {
 	color: #BBB;
 }
+.modal-dialog.modal-lg {
+    width: 90%;
+    max-width: 750px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.modal-content {
+    background-color: #eee;
+}
+.pink-tab-header {
+    background-color: #e91e63;
+    color: rgba(255, 255, 255, .84)
+}
+.graph {
+    margin: 10px auto;
+}
+.graph > div {
+    margin: 0 auto; 
+}
