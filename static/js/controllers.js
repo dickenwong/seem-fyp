@@ -46,11 +46,13 @@ dataMiningControllers.controller('DataMiningCtrl', ['$scope', 'YQLHelper',
 
 dataMiningControllers.controller('PairFinderCtrl',
     ['$scope', 'YQLHelper', 'PairCalculator', '$q', 'PairCrawler', 'StockCategories',
-     '$window', 'google',
+     '$window', 'google', 'StrategyProcessor', 'StatHelper',
     function ($scope, YQLHelper, PairCalculator, $q, PairCrawler, StockCategories,
-              $window, google) {
+              $window, google, StrategyProcessor, StatHelper) {
 
-        $scope.calculationRules = Object.keys(PairCalculator).map(function(funcName) {
+        $scope.calculationRules = Object.keys(PairCalculator).filter(function(funcName){
+            return funcName.indexOf('_') != 0;
+        }).map(function(funcName) {
             var ruleName = funcName.replace(/([A-Z])/g, ' $1').slice(funcName.indexOf('by ') + 3);
             return {name: ruleName, funcName: funcName};
         });
@@ -59,16 +61,13 @@ dataMiningControllers.controller('PairFinderCtrl',
             if (newValue) $scope.stockList = newValue.stocks;
         });
 
-        $scope.startDate = '2013-01-01';
-        $scope.endDate = '2015-01-01';
+        $scope.startDate = '2011-01-01';
+        $scope.endDate = '2014-01-01';
         $scope.stockCategory = $scope.stockCategories[0];
 
         $scope.findPair = function() {
-            if (!$scope.stockCode1 ||
-                !$scope.stockCode2 ||
-                !$scope.startDate ||
-                !$scope.endDate ||
-                !$scope.pairingRule) {
+            if (!$scope.stockCode1 || !$scope.stockCode2 || !$scope.startDate ||
+                !$scope.endDate || !$scope.pairingRule) {
                 return;
             }
             $scope.message = 'Calculating...';
@@ -92,9 +91,7 @@ dataMiningControllers.controller('PairFinderCtrl',
         };
 
         $scope.crawl = function() {
-            if (!$scope.startDate ||
-                !$scope.endDate ||
-                !$scope.pairingRule ||
+            if (!$scope.startDate || !$scope.endDate || !$scope.pairingRule ||
                 !$scope.stockList) {
                 return;
             }
@@ -120,6 +117,18 @@ dataMiningControllers.controller('PairFinderCtrl',
             });
         };
 
+        $scope.clickRowData = function(score) {
+            if (!score.dataset) {
+                $scope.openComparingPage(score.stock1, scorestock2);
+                return;
+            }
+            $scope.pair = score;
+            $scope.drawScoreGraph(score.dataset, '.graph-1', function() {
+                $scope.drawValuesGraph(score.dataset, '.graph-2');
+            });
+            $scope.strategiesResults = null;
+            $('.modal').modal('show');
+        };
 
         $scope.openComparingPage = function(stock1, stock2) {
             var url = 'https://hk.finance.yahoo.com/q/bc?t=2y&s={stock1}&l=on&z=l&q=l&c={stock2}&ql=1';
@@ -127,45 +136,87 @@ dataMiningControllers.controller('PairFinderCtrl',
             $window.open(url);
         };
 
-        $scope.drawGraph = function(dataset) {
+        var baseGoogleChartOptions = {
+            legend: 'none',
+            width: '650',
+            height: 450,
+            lineWidth: 1,
+            vAxis: {
+                // viewWindow: {max: 2, min: -2},
+                baseline: 0
+            },
+            hAxis: {gridlines: {count: 10}},
+            chartArea: {
+                width: '80%',
+                height: '80%'
+            }
+        };
+        $scope.drawScoreGraph = function(dataset, targetDiv, callback) {
             if (!dataset) return;
-            var baseOptions = {
-                legend: 'none',
-                width: '650',
-                height: 450,
-                lineWidth: 1
-            };
+            if (!callback) callback = angular.noop;
             var data = new google.visualization.DataTable();
             data.addColumn('number', 'Day');
             data.addColumn('number');
             data.addRows(dataset.map(function(row) {
-                return [row[0], row[1]];
+                return [row.day, row.deltaValue];
             }));
-
-            var data2 = new google.visualization.DataTable();
-            data2.addColumn('number', 'Day');
-            data2.addColumn('number', 'Stock1');
-            data2.addColumn('number', 'Stock2');
-            data2.addRows(dataset.map(function(row) {
-                return [row[0], row[2], row[3]];
-            }));
-
-            var chart = new google.charts.Line(angular.element('.graph-1')[0]);
-            google.visualization.events.addOneTimeListener(chart, 'ready', function() {
-                var chart2 = new google.charts.Line(angular.element('.graph-2')[0]);
-                chart2.draw(data2, baseOptions);
-            });
-            chart.draw(data, baseOptions);
-
+            var targetEl = angular.element(targetDiv)[0];
+            var chart = new google.visualization.LineChart(targetEl);
+            google.visualization.events.addOneTimeListener(chart, 'ready', callback)
+            chart.draw(data, baseGoogleChartOptions);
         };
 
-        $scope.clickRowData = function(score) {
-            if (!score.dataset) {
-                $scope.openComparingPage(score.stock1, scorestock2);
+        $scope.drawValuesGraph = function(dataset, targetDiv, callback) {
+            if (!dataset) return;
+            if (!callback) callback = angular.noop;
+            var data = new google.visualization.DataTable();
+            data.addColumn('number', 'Day');
+            data.addColumn('number', 'Stock1');
+            data.addColumn('number', 'Stock2');
+            data.addRows(dataset.map(function(row) {
+                return [row.day, row.stock1Value, row.stock2Value];
+            }));
+            var targetEl = angular.element(targetDiv)[0];
+            var chart = new google.visualization.LineChart(targetEl);
+            google.visualization.events.addOneTimeListener(chart, 'ready', callback)
+            chart.draw(data, baseGoogleChartOptions);
+        }
+
+        $scope.targetStartDate = '2014-01-01';
+        $scope.targetEndDate = '2015-01-01';
+        $scope.doAllStrategy = function() {
+            if (!$scope.targetStartDate || !$scope.targetEndDate ||
+                $scope.pairDataset) {
                 return;
             }
-            $scope.drawGraph(score.dataset);
-            $('.modal').modal('show');
+            var getDataPromise = function(stockCode) {
+                return YQLHelper.getHistoricalDataViaServer(
+                    stockCode,
+                    new Date($scope.targetStartDate),
+                    new Date($scope.targetEndDate)
+                );
+            }
+            var promise1 = getDataPromise($scope.pair.stock1);
+            var promise2 = getDataPromise($scope.pair.stock2);
+            $q.all([promise1, promise2]).then(function(responses) {
+                var preDefined = {
+                    mean1: StatHelper.mean($scope.pair.dataset, 'stock1Price'),
+                    mean2: StatHelper.mean($scope.pair.dataset, 'stock2Price'),
+                    std1: StatHelper.std($scope.pair.dataset, 'stock1Price'),
+                    std2: StatHelper.std($scope.pair.dataset, 'stock2Price')
+                };
+                var targetData = PairCalculator[$scope.pairingRule](
+                    responses[0].data.results,
+                    responses[1].data.results,
+                    preDefined
+                );
+                $scope.drawScoreGraph(targetData.dataset, '.targetGraph');
+                $scope.strategiesResults = StrategyProcessor.doAllStrategies(
+                    $scope.pair.dataset,
+                    targetData.dataset
+                );
+                console.log($scope.strategiesResults);
+            });
         };
 
     }]

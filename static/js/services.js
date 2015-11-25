@@ -59,6 +59,7 @@ dataMiningServices.factory('YQLHelper', ['$http', '$q', 'Papa',
 		var cancelAll = function() {
 			canceler.resolve();
 			canceler = $q.defer();
+			return this;
 		};
 		return {
 			'doYQL': doYQL,
@@ -69,8 +70,60 @@ dataMiningServices.factory('YQLHelper', ['$http', '$q', 'Papa',
 	}
 ]);
 
-dataMiningServices.factory('PairCalculator', ['$q',
-	function ($q) {
+dataMiningServices.factory('StatHelper', ['$window', function ($window){
+	var _mean = function(stockData, pricePropertyName) {
+		if (pricePropertyName == null) pricePropertyName = 'Close';
+		var dayCounts = 0;
+		return stockData.reduce(function(prev, current) {
+			if (current[pricePropertyName] == null) return prev;
+			dayCounts += 1;
+			return prev + Number(current[pricePropertyName])
+		}, 0) / dayCounts;
+	};
+
+	var _std = function(stockData, pricePropertyName) {
+		if (pricePropertyName == null) pricePropertyName = 'Close';
+		var mean = _mean(stockData, pricePropertyName);
+		var dayCounts = 0;
+		var variance = stockData.reduce(function(prev, current) {
+			if (current[pricePropertyName] == null) return prev;
+			dayCounts += 1;
+			var delta = Number(current[pricePropertyName]) - mean;
+			return prev + delta * delta
+		}, 0) / (dayCounts - 1);
+		return Math.sqrt(variance);
+	};
+
+	var _normalize = function(value, mean, std) {
+		return (value - mean) / std;
+	};
+
+	var _normalizeSeries = function(stockData, pricePropertyName, mean, std) {
+		if (pricePropertyName == null) pricePropertyName = 'Close';
+		if (mean == null) mean = _mean(stockData, pricePropertyName);
+		if (std == null) std = _std(stockData, pricePropertyName);
+		return stockData.map(function(row) {
+			return _normalize(row[pricePropertyName], mean, std);
+		});
+	};
+
+	$window.testStatHelper = {
+		mean: _mean,
+		std: _std,
+		normalize: _normalize,
+		normalizeSeries: _normalizeSeries
+	};
+
+	return {
+		mean: _mean,
+		std: _std,
+		normalize: _normalize,
+		normalizeSeries: _normalizeSeries
+	};
+}]);
+
+dataMiningServices.factory('PairCalculator', ['$q', 'StatHelper',
+	function ($q, StatHelper) {
 		var _toDataByDate = function(stockData) {
 			var dataByDate = {};
 			stockData.forEach(function(record) {
@@ -79,33 +132,13 @@ dataMiningServices.factory('PairCalculator', ['$q',
 			return dataByDate;
 		};
 
-		var _mean = function(stockData) {
-			var dayCounts = 0;
-			return stockData.reduce(function(prev, current) {
-				if (!current.Close) return;
-				dayCounts += 1;
-				return prev + Number(current.Close)
-			}, 0) / dayCounts;
-		};
-
-		var _std = function(stockData) {
-			var mean = _mean(stockData);
-			var dayCounts = 0;
-			var variance = stockData.reduce(function(prev, current) {
-				if (!current.Close) return;
-				dayCounts += 1;
-				var delta = Number(current.Close) - mean;
-				return prev + delta * delta
-			}, 0) / (dayCounts + 1);
-			return Math.sqrt(variance);
-		};
-
 		var _mergeDates = function(stockDataByMonth1, stockDataByMonth2) {
 			var dates1 = Object.keys(stockDataByMonth1);
 			var dates2 = Object.keys(stockDataByMonth2);
 			var dates = dates1.concat(dates2.filter(function(date) {
 				return dates1.indexOf(date) == -1;
 			}));
+			dates.sort(function(a, b){return new Date(a) - new Date(b);});
 			return dates;
 		};
 
@@ -157,16 +190,16 @@ dataMiningServices.factory('PairCalculator', ['$q',
 			return [avgSqDelta, dayCounts];
 		};
 
-		var byLeastSquareDeltaOfNormalized = function(stockData1, stockData2) {
-			var mean1 = _mean(stockData1);
-			var std1 = _std(stockData1);
-			var mean2 = _mean(stockData2);
-			var std2 = _std(stockData2);
+		var byLeastSquareDeltaOfNormalized = function(stockData1, stockData2, preDefined) {
+			var mean1 = preDefined && preDefined.mean1 || StatHelper.mean(stockData1);
+			var std1 = preDefined && preDefined.std1 || StatHelper.std(stockData1);
+			var mean2 = preDefined && preDefined.mean2 || StatHelper.mean(stockData2);
+			var std2 = preDefined && preDefined.std2 || StatHelper.std(stockData2);
 
 			stockData1 = _toDataByDate(stockData1);
 			stockData2 = _toDataByDate(stockData2);
 			var dates = _mergeDates(stockData1, stockData2);
-			
+
 			var sumOfSqDelta = 0;
 			var dayCounts = 0;
 			var dataset = [];
@@ -174,25 +207,124 @@ dataMiningServices.factory('PairCalculator', ['$q',
 				if (!stockData1[date] || !stockData2[date]) return;
 				var close1 = +stockData1[date].Close;
 				var close2 = +stockData2[date].Close;
-				var normalized1 = (close1 - mean1) / std1;
-				var normalized2 = (close2 - mean2) / std2;
+				var normalized1 = StatHelper.normalize(close1, mean1, std1);
+				var normalized2 = StatHelper.normalize(close2, mean2, std2);
 				var delta = normalized1 - normalized2;
 				var sqDelta = delta * delta;
 				sumOfSqDelta += sqDelta;
 				dayCounts += 1;
-				dataset.push([dayCounts, delta, normalized1, normalized2]);
+				dataset.push({
+					day: dayCounts,
+					deltaValue: delta,
+					stock1Value: normalized1,
+					stock2Value: normalized2,
+					stock1Price: close1,
+					stock2Price: close2
+				});
 			});
 			var avgSqDelta = sumOfSqDelta / dayCounts;
-			return [avgSqDelta, dayCounts, dataset];
+			return {score: avgSqDelta, dayCounts: dayCounts, dataset: dataset};
 		};
 
 		return {
+			// '_toDataByDate': _toDataByDate,
+			// '_mergeDates': _mergeDates,
 			'byLeastSquare': byLeastSquare,
 			'byLeastSquareDeltaPercentChange': byLeastSquareDeltaPercentChange,
 			'byLeastSquareDeltaOfNormalized': byLeastSquareDeltaOfNormalized
 		};
 	}
 ]);
+
+
+dataMiningServices.factory('StrategyProcessor',
+	['PairCalculator', 'StatHelper', 'StrategyList',
+	function (PairCalculator, StatHelper, StrategyList) {
+
+		var _strategies = StrategyList;
+
+		var doStrategy = function(strategy, historicDataset, targetDataset) {
+			var std = StatHelper.std(historicDataset, 'deltaValue');
+			var _getAbsBound = function(boundInfo) {
+				var unitFactor;
+				switch (boundInfo.unit) {
+					case 'std': unitFactor = StatHelper.std(historicDataset, 'deltaValue'); break;
+					case 'mean': unitFactor = StatHelper.mean(historicDataset, 'deltaValue'); break;
+					default: unitFactor = 1; break;
+				}
+				return boundInfo.value * unitFactor
+			};
+			var openAbsBound = _getAbsBound(strategy.open);
+			var closeAbsBound = _getAbsBound(strategy.close);
+			var _opening = false;
+			var actions = [];
+			targetDataset.forEach(function(row) {
+				var delta = row.deltaValue;
+				if (!_opening && delta * delta >= openAbsBound * openAbsBound) {
+					actions.push(angular.extend({}, row, {type: 'OPEN'}));
+					_opening = true;
+				} else if (_opening && delta * delta <= closeAbsBound * closeAbsBound) {
+					actions.push(angular.extend({}, row, {type: 'CLOSE'}));
+					_opening = false;
+				}
+			});
+			var calculations = calculateProfit(strategy, actions);
+			return angular.extend(calculations, {
+				openAbsBound: openAbsBound,
+				closeAbsBound: closeAbsBound
+			});
+		};
+
+		var calculateProfit = function(strategy, actions) {
+			var profit = 0;
+			var openCounts = 0;
+			var closeCounts = 0;
+			var holdingDuration = 0;
+			var lastOpen;
+			var tStrategy = strategy.transaction;
+			actions.forEach(function(action) {
+				if (action.type == 'OPEN') {
+					openCounts += 1;
+					lastOpen = action;
+				} else if (action.type == 'CLOSE') {
+					closeCounts += 1;
+					holdingDuration += action.day - lastOpen.day;
+					var tValue = tStrategy.value + profit * (+tStrategy.accumalated);
+					profit += (-(action.stock1Value - lastOpen.stock1Value) +
+						(action.stock2Value - lastOpen.stock2Value)) *
+						(lastOpen.deltaValue > 0? 1 : -1) * tValue;
+					lastOpen = null;
+				}
+			});
+			if (lastOpen) {
+				holdingDuration += actions[actions.length - 1].day - lastOpen.day;
+			}
+			return {
+				profit: profit,
+				openCounts: openCounts,
+				closeCounts: closeCounts,
+				holdingDuration: holdingDuration,
+				isHolding: !!lastOpen,
+				actions: actions
+			};
+		};
+
+		var doAllStrategies = function(historicDataset, targetDataset) {
+			return _strategies.map(function(strategy) {
+				return {
+					strategy: strategy,
+					result: doStrategy(strategy, historicDataset, targetDataset)
+				}
+			});
+		};
+
+		return {
+			doStrategy: doStrategy,
+			doAllStrategies: doAllStrategies
+		};
+	}]
+);
+
 
 dataMiningServices.factory('PairCrawler',
 	['$q', 'YQLHelper', 'Papa', 'PairCalculator',
@@ -233,9 +365,9 @@ dataMiningServices.factory('PairCrawler',
 						scores.push({
 							stock1: stock1,
 							stock2: stock2,
-							score: result[0],
-							dayCounts: result[1],
-							dataset: result[2],
+							score: result.score,
+							dayCounts: result.dayCounts,
+							dataset: result.dataset,
 						});
 					});
 				});
@@ -248,6 +380,7 @@ dataMiningServices.factory('PairCrawler',
 		};
 	}]
 );
+
 
 dataMiningServices.factory('StockCategories', [function(){
 	return [
@@ -272,4 +405,67 @@ dataMiningServices.factory('StockCategories', [function(){
 			stocks: '0250.HK, 0327.HK, 0395.HK, 0400.HK, 0434.HK, 0484.HK, 0536.HK, 0543.HK, 0673.HK, 0700.HK, 0777.HK, 0799.HK, 1022.HK, 1026.HK, 1094.HK, 1980.HK, 2100.HK, 2280.HK, 6899.HK, 8007.HK, 8026.HK, 8081.HK, 8121.HK, 8206.HK, 8255.HK, 8266.HK, 8267.HK, 8317.HK, 8361.HK, 8400.HK'
 		}
 	];
-}])
+}]);
+
+dataMiningServices.value('StrategyList', [
+	{
+		name: 'Open at 2 sd, close at 1 sd',
+		open: {unit: 'std', value: 2},
+		close: {unit: 'std', value: 1},
+		transaction: {value: 1, accumalated: false}
+	},
+	{
+		name: 'Open at 2 sd, close at 0.5 sd',
+		open: {unit: 'std', value: 2},
+		close: {unit: 'std', value: 0.5},
+		transaction: {value: 1, accumalated: false}
+	},
+	{
+		name: 'Open at 1.5 sd, close at 0.75 sd',
+		open: {unit: 'std', value: 1.5},
+		close: {unit: 'std', value: 0.75},
+		transaction: {value: 1, accumalated: false}
+	},
+	{
+		name: 'Open at 1.5 sd, close at 0.5 sd',
+		open: {unit: 'std', value: 1.5},
+		close: {unit: 'std', value: 0.5},
+		transaction: {value: 1, accumalated: false}
+	},
+	{
+		name: 'Open at 1 sd, close at 0.5 sd',
+		open: {unit: 'std', value: 1},
+		close: {unit: 'std', value: 0.5},
+		transaction: {value: 1, accumalated: false}
+	},
+	{
+		name: 'Open at 1 sd, close at 0.75 sd',
+		open: {unit: 'std', value: 1},
+		close: {unit: 'std', value: 0.75},
+		transaction: {value: 1, accumalated: false}
+	},
+	{
+		name: 'Open at 1 sd, close at 0.2 sd',
+		open: {unit: 'std', value: 1},
+		close: {unit: 'std', value: 0.2},
+		transaction: {value: 1, accumalated: false}
+	},
+	{
+		name: 'Open at 0.75 sd, close at 0.5 sd',
+		open: {unit: 'std', value: 0.75},
+		close: {unit: 'std', value: 0.5},
+		transaction: {value: 1, accumalated: false}
+	},
+	{
+		name: 'Open at 0.5 sd, close at 0.25 sd',
+		open: {unit: 'std', value: 0.5},
+		close: {unit: 'std', value: 0.25},
+		transaction: {value: 1, accumalated: false}
+	},
+	{
+		name: 'Open at 0.3 sd, close at 0.05 sd',
+		open: {unit: 'std', value: 0.3},
+		close: {unit: 'std', value: 0.05},
+		transaction: {value: 1, accumalated: false}
+	}
+]);

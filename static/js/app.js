@@ -6,10 +6,12 @@ var dataMiningApp = angular.module('dataMiningApp', [
 ]);
 
 dataMiningApp.constant('Papa', Papa);
-dataMiningApp.constant('google', google);
-dataMiningApp.run(['google', function(google) {
-    google.load('visualization', '1.1', {
-        packages: ['line'],
-        callback: function() {}
-    });
-}]);
+if (typeof google !== 'undefined') {
+	dataMiningApp.constant('google', google);
+	dataMiningApp.run(['google', function(google) {
+	    google.load('visualization', '1.1', {
+	        packages: ['corechart'],
+	        callback: function() {}
+	    });
+	}]);
+}

@@ -67,6 +67,7 @@
             </div>
         </div>
     </section>
+
     <section class="quote-data-table">
         <div class="container">
             <p class="text-warning text-center" ng-show="message" ng-bind="message"></p>
@@ -90,7 +91,7 @@
             </table>
         </div>
     </section>
-    
+
     <section class="modal fade">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
@@ -99,20 +100,63 @@
                         <a href="#graphs" data-toggle="tab">Graphs</a>
                     </li>
                     <li>
-                        <a href="#profile" data-toggle="tab">Profile</a>
+                        <a href="#strategy" data-toggle="tab">Strategy</a>
                     </li>
                 </ul>
                 <div class="tab-content">
                     <div class="tab-pane active" id="graphs">
-                        <div class="graph graph-1"></div>
-                        <div class="graph graph-2"></div>
+                        <div class="graph-wrapper">
+                            <div class="graph graph-1"></div>
+                            <div class="graph graph-2"></div>
+                        </div>
                     </div>
-                    <div class="tab-pane" id="profile">...</div>
+                    <div class="tab-pane" id="strategy">
+                        <section class="input-yql-section text-center">
+                            <div class="input-wrapper">
+                                <input type="text" class="form-control input-date" ng-model="targetStartDate" placeholder="From (YYYY-MM-DD)">
+                                <input type="text" class="form-control input-date" ng-model="targetEndDate" placeholder="To (YYYY-MM-DD)">
+                                <button class="btn btn-material-pink-500"
+                                        ng-disabled="!targetStartDate || !targetEndDate"
+                                        ng-click="doAllStrategy()">
+                                    Do All Strategy
+                                </button>
+                            </div>
+                        </section>
+                        <section class="strategy-result" ng-show="strategiesResults.length">
+                            <div class="graph-wrapper">
+                                <div class="graph targetGraph"></div>
+                            </div>
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th style="">Strategy</th>
+                                        <th style="width: 12.5%">Profit</th>
+                                        <th style="width: 12.5%">Open at (±)</th>
+                                        <th style="width: 12.5%">Close at (±)</th>
+                                        <th style="width: 10.5%">Open Counts</th>
+                                        <th style="width: 10.5%">Holding Days</th>
+                                        <th style="width: 10.5%">Is Holding</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr ng-repeat="result in strategiesResults">
+                                        <td ng-bind="result.strategy.name"></td>
+                                        <td ng-bind="result.result.profit | number:4"></td>
+                                        <td ng-bind="result.result.openAbsBound|number:3"></td>
+                                        <td ng-bind="result.result.closeAbsBound|number:3"></td>
+                                        <td ng-bind="result.result.openCounts"></td>
+                                        <td ng-bind="result.result.holdingDuration"></td>
+                                        <td ng-bind="result.result.isHolding"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </section>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
-    
+
 </main>
 <script>
 $.material.init();
