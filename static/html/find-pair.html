@@ -102,6 +102,12 @@
                     <li>
                         <a href="#strategy" data-toggle="tab">Strategy</a>
                     </li>
+                    <li style="float: right;">
+                        <a>
+                            <span ng-bind="pair.stock1"></span> -
+                            <span ng-bind="pair.stock2"></span>
+                        </a>
+                    </li>
                 </ul>
                 <div class="tab-content">
                     <div class="tab-pane active" id="graphs">
@@ -130,23 +136,25 @@
                                 <thead>
                                     <tr>
                                         <th style="">Strategy</th>
-                                        <th style="width: 12.5%">Profit</th>
-                                        <th style="width: 12.5%">Open at (±)</th>
-                                        <th style="width: 12.5%">Close at (±)</th>
-                                        <th style="width: 10.5%">Open Counts</th>
-                                        <th style="width: 10.5%">Holding Days</th>
-                                        <th style="width: 10.5%">Is Holding</th>
+                                        <th style="width: 11.5%">Profit</th>
+                                        <th style="width: 11.5%">Open at (±)</th>
+                                        <th style="width: 11.5%">Close at (±)</th>
+                                        <th style="width: 11.5%">Open Counts</th>
+                                        <th style="width: 11.5%">Holding Days</th>
+                                        <th style="width: 11.5%">Is Holding</th>
+                                        <th style="width: 11.5%">Profit / Holding Day</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr ng-repeat="result in strategiesResults">
-                                        <td ng-bind="result.strategy.name"></td>
+                                        <td class="col-strategy-name" ng-bind="result.strategy.name"></td>
                                         <td ng-bind="result.result.profit | number:4"></td>
                                         <td ng-bind="result.result.openAbsBound|number:3"></td>
                                         <td ng-bind="result.result.closeAbsBound|number:3"></td>
                                         <td ng-bind="result.result.openCounts"></td>
                                         <td ng-bind="result.result.holdingDuration"></td>
                                         <td ng-bind="result.result.isHolding"></td>
+                                        <td ng-bind="result.result.profitPerHoldingDay|number:5"></td>
                                     </tr>
                                 </tbody>
                             </table>

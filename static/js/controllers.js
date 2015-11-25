@@ -5,8 +5,8 @@ var dataMiningControllers = angular.module('dataMiningControllers', []);
 dataMiningControllers.controller('DataMiningCtrl', ['$scope', 'YQLHelper',
     function ($scope, YQLHelper) {
         $scope.inputStockCode = '0001.HK';
-        $scope.inputStartDate = '2014-01-01';
-        $scope.inputEndDate = '2015-01-01';
+        $scope.inputStartDate = '2009-10-01';
+        $scope.inputEndDate = '2014-10-01';
         $scope.inputYQL = '';
         $scope.dataResults = [];
 
@@ -61,8 +61,8 @@ dataMiningControllers.controller('PairFinderCtrl',
             if (newValue) $scope.stockList = newValue.stocks;
         });
 
-        $scope.startDate = '2011-01-01';
-        $scope.endDate = '2014-01-01';
+        $scope.startDate = '2009-10-01';
+        $scope.endDate = '2014-10-01';
         $scope.stockCategory = $scope.stockCategories[0];
 
         $scope.findPair = function() {
@@ -143,7 +143,8 @@ dataMiningControllers.controller('PairFinderCtrl',
             lineWidth: 1,
             vAxis: {
                 // viewWindow: {max: 2, min: -2},
-                baseline: 0
+                baseline: 0,
+                format: '#.##'
             },
             hAxis: {gridlines: {count: 10}},
             chartArea: {
@@ -182,8 +183,8 @@ dataMiningControllers.controller('PairFinderCtrl',
             chart.draw(data, baseGoogleChartOptions);
         }
 
-        $scope.targetStartDate = '2014-01-01';
-        $scope.targetEndDate = '2015-01-01';
+        $scope.targetStartDate = '2014-10-01';
+        $scope.targetEndDate = '2015-10-01';
         $scope.doAllStrategy = function() {
             if (!$scope.targetStartDate || !$scope.targetEndDate ||
                 $scope.pairDataset) {

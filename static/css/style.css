@@ -42,3 +42,9 @@
 	display: inline-block;
     margin: 10px auto;
 }
+.col-strategy-name {
+	font-size: 12px;
+	padding-top: 0;
+	padding-bottom: 0;
+	line-height: 36px;
+}
