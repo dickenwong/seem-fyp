@@ -114,6 +114,7 @@
                         <div class="graph-wrapper">
                             <div class="graph graph-1"></div>
                             <div class="graph graph-2"></div>
+                            <div class="graph graph-3"></div>
                         </div>
                     </div>
                     <div class="tab-pane" id="strategy">
@@ -149,8 +150,14 @@
                                     <tr ng-repeat="result in strategiesResults">
                                         <td class="col-strategy-name" ng-bind="result.strategy.name"></td>
                                         <td ng-bind="result.result.profit | number:4"></td>
-                                        <td ng-bind="result.result.openAbsBound|number:3"></td>
-                                        <td ng-bind="result.result.closeAbsBound|number:3"></td>
+                                        <td>
+                                            <span ng-bind="result.result.openAbsBounds[0]| number:3"></span>, 
+                                            <span ng-bind="result.result.openAbsBounds[1]| number:3"></span>
+                                        </td>
+                                        <td>
+                                            <span ng-bind="result.result.closeAbsBounds[0]| number:3"></span>, 
+                                            <span ng-bind="result.result.closeAbsBounds[1]| number:3"></span>
+                                        </td>
                                         <td ng-bind="result.result.openCounts"></td>
                                         <td ng-bind="result.result.holdingDuration"></td>
                                         <td ng-bind="result.result.isHolding"></td>

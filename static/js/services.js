@@ -122,30 +122,13 @@ dataMiningServices.factory('StatHelper', ['$window', function ($window){
 	};
 }]);
 
-dataMiningServices.factory('PairCalculator', ['$q', 'StatHelper',
-	function ($q, StatHelper) {
-		var _toDataByDate = function(stockData) {
-			var dataByDate = {};
-			stockData.forEach(function(record) {
-				dataByDate[record.Date] = record;
-			});
-			return dataByDate;
-		};
-
-		var _mergeDates = function(stockDataByMonth1, stockDataByMonth2) {
-			var dates1 = Object.keys(stockDataByMonth1);
-			var dates2 = Object.keys(stockDataByMonth2);
-			var dates = dates1.concat(dates2.filter(function(date) {
-				return dates1.indexOf(date) == -1;
-			}));
-			dates.sort(function(a, b){return new Date(a) - new Date(b);});
-			return dates;
-		};
+dataMiningServices.factory('PairCalculator', ['$q', 'StatHelper', 'DatasetPreparator',
+	function ($q, StatHelper, DatasetPreparator) {
 
 		var byLeastSquare = function(stockData1, stockData2) {
-			stockData1 = _toDataByDate(stockData1);
-			stockData2 = _toDataByDate(stockData2);
-			var dates = _mergeDates(stockData1, stockData2);
+			stockData1 = DatasetPreparator._toDataByDate(stockData1);
+			stockData2 = DatasetPreparator._toDataByDate(stockData2);
+			var dates = DatasetPreparator._mergeDates(stockData1, stockData2);
 
 			var sumOfSqDelta = 0;
 			var dayCounts = 0;
@@ -163,9 +146,9 @@ dataMiningServices.factory('PairCalculator', ['$q', 'StatHelper',
 		};
 
 		var byLeastSquareDeltaPercentChange = function(stockData1, stockData2) {
-			stockData1 = _toDataByDate(stockData1);
-			stockData2 = _toDataByDate(stockData2);
-			var dates = _mergeDates(stockData1, stockData2);
+			stockData1 = DatasetPreparator._toDataByDate(stockData1);
+			stockData2 = DatasetPreparator._toDataByDate(stockData2);
+			var dates = DatasetPreparator._mergeDates(stockData1, stockData2);
 			dates.sort(function(a, b){return new Date(a) - new Date(b);});
 
 			var sumOfSqDelta = 0;
@@ -196,9 +179,9 @@ dataMiningServices.factory('PairCalculator', ['$q', 'StatHelper',
 			var mean2 = preDefined && preDefined.mean2 || StatHelper.mean(stockData2);
 			var std2 = preDefined && preDefined.std2 || StatHelper.std(stockData2);
 
-			stockData1 = _toDataByDate(stockData1);
-			stockData2 = _toDataByDate(stockData2);
-			var dates = _mergeDates(stockData1, stockData2);
+			stockData1 = DatasetPreparator._toDataByDate(stockData1);
+			stockData2 = DatasetPreparator._toDataByDate(stockData2);
+			var dates = DatasetPreparator._mergeDates(stockData1, stockData2);
 
 			var sumOfSqDelta = 0;
 			var dayCounts = 0;
@@ -215,6 +198,7 @@ dataMiningServices.factory('PairCalculator', ['$q', 'StatHelper',
 				dayCounts += 1;
 				dataset.push({
 					day: dayCounts,
+					date: date,
 					deltaValue: delta,
 					stock1Value: normalized1,
 					stock2Value: normalized2,
@@ -227,8 +211,6 @@ dataMiningServices.factory('PairCalculator', ['$q', 'StatHelper',
 		};
 
 		return {
-			// '_toDataByDate': _toDataByDate,
-			// '_mergeDates': _mergeDates,
 			'byLeastSquare': byLeastSquare,
 			'byLeastSquareDeltaPercentChange': byLeastSquareDeltaPercentChange,
 			'byLeastSquareDeltaOfNormalized': byLeastSquareDeltaOfNormalized
@@ -237,45 +219,128 @@ dataMiningServices.factory('PairCalculator', ['$q', 'StatHelper',
 ]);
 
 
+
+dataMiningServices.factory('DatasetPreparator',
+	['StatHelper',
+	function (StatHelper) {
+
+		var _toDataByDate = function(stockData) {
+			var dataByDate = {};
+			stockData.forEach(function(record) {
+				dataByDate[record.Date] = record;
+			});
+			return dataByDate;
+		};
+
+		var _mergeDates = function(stockDataByMonth1, stockDataByMonth2) {
+			var dates1 = Object.keys(stockDataByMonth1);
+			var dates2 = Object.keys(stockDataByMonth2);
+			var dates = dates1.concat(dates2.filter(function(date) {
+				return dates1.indexOf(date) == -1;
+			}));
+			dates.sort(function(a, b){return new Date(a) - new Date(b);});
+			return dates;
+		};
+
+		var makeSimpleDataset = function(stockData1, stockData2) {
+			stockData1 = _toDataByDate(stockData1);
+			stockData2 = _toDataByDate(stockData2);
+			var dates = _mergeDates(stockData1, stockData2);
+			var dataset = [];
+			var dayCounts = 0;
+			dates.forEach(function(date) {
+				if (!stockData1[date] || !stockData2[date]) return;
+				dayCounts += 1;
+				dataset.push({
+					day: dayCounts,
+					date: date,
+					stock1Price: +stockData1[date].Close,
+					stock2Price: +stockData2[date].Close
+				});
+			});
+			return dataset;
+		};
+
+		var makeRelativePriceRatio = function(dataset) {
+			return dataset.map(function(row) {
+				var close1 = row.stock1Price;
+				var close2 = row.stock2Price;
+				var priceRatio = close1 / close2;
+				return angular.extend({}, row, {priceRatio: priceRatio});
+			});
+		};
+
+		return {
+			_toDataByDate: _toDataByDate,
+			_mergeDates: _mergeDates,
+			makeSimpleDataset: makeSimpleDataset,
+			makeRelativePriceRatio: makeRelativePriceRatio
+		};
+	}]
+);
+
+
 dataMiningServices.factory('StrategyProcessor',
 	['PairCalculator', 'StatHelper', 'StrategyList',
 	function (PairCalculator, StatHelper, StrategyList) {
 
 		var _strategies = StrategyList;
 
-		var doStrategy = function(strategy, historicDataset, targetDataset) {
-			var std = StatHelper.std(historicDataset, 'deltaValue');
+		var makeRelative 
+
+		var doStrategy = function(strategy, historicDataset, targetDataset, valuePropertyName) {
+			var std = StatHelper.std(historicDataset, valuePropertyName);
+			var mean = StatHelper.mean(historicDataset, valuePropertyName);
 			var _getAbsBound = function(boundInfo) {
-				var unitFactor;
 				switch (boundInfo.unit) {
-					case 'std': unitFactor = StatHelper.std(historicDataset, 'deltaValue'); break;
-					case 'mean': unitFactor = StatHelper.mean(historicDataset, 'deltaValue'); break;
-					default: unitFactor = 1; break;
+					case 'std': 
+						return [
+							mean + boundInfo.value * std, 
+							mean - boundInfo.value * std
+						];
+					case 'mean': 
+						return [boundInfo.value * mean, -boundInfo.value * mean];
 				}
-				return boundInfo.value * unitFactor
 			};
-			var openAbsBound = _getAbsBound(strategy.open);
-			var closeAbsBound = _getAbsBound(strategy.close);
+			var openAbsBounds = _getAbsBound(strategy.open);
+			var closeAbsBounds = _getAbsBound(strategy.close);
 			var _opening = false;
+			var lastOpen = null;
 			var actions = [];
 			targetDataset.forEach(function(row) {
-				var delta = row.deltaValue;
-				if (!_opening && delta * delta >= openAbsBound * openAbsBound) {
-					actions.push(angular.extend({}, row, {type: 'OPEN'}));
-					_opening = true;
-				} else if (_opening && delta * delta <= closeAbsBound * closeAbsBound) {
-					actions.push(angular.extend({}, row, {type: 'CLOSE'}));
-					_opening = false;
+				var value = row[valuePropertyName];
+				if (!_opening) {
+					if (value >= openAbsBounds[0]) {
+						lastOpen = {type: 'OPEN', stock1Action: 'SHORT', stock2Action: 'LONG'};
+						actions.push(angular.extend({}, row, lastOpen));
+						_opening = true;
+					} else if (value <= openAbsBounds[1]) {
+						lastOpen = {type: 'OPEN', stock1Action: 'LONG', stock2Action: 'SHORT'};
+						actions.push(angular.extend({}, row, lastOpen));
+						_opening = true;
+					}
+				} else if (_opening) {
+					if (value <= closeAbsBounds[0] && lastOpen.stock1Action == 'SHORT' ||
+						value >= closeAbsBounds[1] && lastOpen.stock1Action == 'LONG') {
+						actions.push(angular.extend({}, row, {type: 'CLOSE'}));
+						_opening = false;
+						lastOpen = null;
+					}
 				}
 			});
-			var calculations = calculateProfit(strategy, actions, targetDataset);
+			var calculations = calculateProfit(
+				strategy, 
+				actions, 
+				targetDataset, 
+				valuePropertyName
+			);
 			return angular.extend(calculations, {
-				openAbsBound: openAbsBound,
-				closeAbsBound: closeAbsBound
+				openAbsBounds: openAbsBounds,
+				closeAbsBounds: closeAbsBounds
 			});
 		};
 
-		var calculateProfit = function(strategy, actions, targetDataset) {
+		var calculateProfit = function(strategy, actions, targetDataset, valuePropertyName) {
 			var profit = 0;
 			var openCounts = 0;
 			var closeCounts = 0;
@@ -290,9 +355,11 @@ dataMiningServices.factory('StrategyProcessor',
 					closeCounts += 1;
 					holdingDuration += action.day - lastOpen.day;
 					var tValue = tStrategy.value + profit * (+tStrategy.accumalated);
-					profit += (-(action.stock1Value - lastOpen.stock1Value) +
-						(action.stock2Value - lastOpen.stock2Value)) *
-						(lastOpen.deltaValue > 0? 1 : -1) * tValue;
+					profit += (action.stock1Price - lastOpen.stock1Price) * tValue / lastOpen.stock1Price * 
+						(lastOpen.stock1Action == 'LONG'? 1 : -1) +
+						(action.stock2Price - lastOpen.stock2Price) * tValue / lastOpen.stock2Price *
+						(lastOpen.stock2Action == 'LONG'? 1 : -1);
+					console.log(profit);
 					lastOpen = null;
 				}
 			});
@@ -310,11 +377,17 @@ dataMiningServices.factory('StrategyProcessor',
 			};
 		};
 
-		var doAllStrategies = function(historicDataset, targetDataset) {
+		var doAllStrategies = function(historicDataset, targetDataset, valuePropertyName) {
+			if (valuePropertyName == null) valuePropertyName = 'priceRatio';
 			return _strategies.map(function(strategy) {
 				return {
 					strategy: strategy,
-					result: doStrategy(strategy, historicDataset, targetDataset)
+					result: doStrategy(
+						strategy, 
+						historicDataset, 
+						targetDataset,
+						valuePropertyName
+					)
 				}
 			});
 		};
