@@ -5,8 +5,8 @@ var dataMiningControllers = angular.module('dataMiningControllers', []);
 dataMiningControllers.controller('DataMiningCtrl', ['$scope', 'YQLHelper',
     function ($scope, YQLHelper) {
         $scope.inputStockCode = '0001.HK';
-        $scope.inputStartDate = '2009-10-01';
-        $scope.inputEndDate = '2014-10-01';
+        $scope.inputStartDate = '2008-10-01';
+        $scope.inputEndDate = '2013-10-01';
         $scope.inputYQL = '';
         $scope.dataResults = [];
 
@@ -61,8 +61,8 @@ dataMiningControllers.controller('PairFinderCtrl',
             if (newValue) $scope.stockList = newValue.stocks;
         });
 
-        $scope.startDate = '2009-10-01';
-        $scope.endDate = '2014-10-01';
+        $scope.startDate = '2008-10-01';
+        $scope.endDate = '2013-10-01';
         $scope.stockCategory = $scope.stockCategories[0];
 
         $scope.findPair = function() {
@@ -128,7 +128,7 @@ dataMiningControllers.controller('PairFinderCtrl',
                     $scope.pair.dataset = DatasetPreparator.makeRelativePriceRatio(
                         $scope.pair.dataset
                     );
-                    $scope.drawOneVariableGraph(score.dataset, 'priceRatio', null, '.graph-3');
+                    $scope.drawGraphWithStd(score.dataset, 'priceRatio', null, '.graph-3');
                 });
             });
             $scope.strategiesResults = null;
@@ -143,20 +143,17 @@ dataMiningControllers.controller('PairFinderCtrl',
         };
 
         var baseGoogleChartOptions = {
-            legend: 'none',
-            width: 720,
+            legend: {position: 'right', alignment: 'center'},
+            width: 750,
             height: 450,
             lineWidth: 1,
-            vAxis: {
-                // viewWindow: {max: 2, min: -2},
-                // baseline: 0,
-                format: '#.##'
-            },
-            hAxis: {gridlines: {count: 10, color: '#eee'}, title: 'Day'},
+            vAxis: {format: '#.##'},
+            hAxis: {gridlines: {color: '#eee'}, title: 'Date'},
             crosshair: { trigger: 'both', opacity: '0.5'},
             chartArea: {
-                width: '80%',
-                height: '80%'
+                width: '75%',
+                height: '80%',
+                left: '8%'
             }
         };
 
@@ -169,7 +166,7 @@ dataMiningControllers.controller('PairFinderCtrl',
                 variableName.slice(0, 1).toUpperCase() +
                 variableName.slice(1).replace(/([A-Z])/g, ' $1')
             ) : variableName;
-            data.addColumn('number', 'Day');
+            data.addColumn('date', 'Day');
             if (option && option.extraColumns) {
                 option.extraColumns.forEach(function(col) {
                     data.addColumn('number', col.name);
@@ -177,7 +174,7 @@ dataMiningControllers.controller('PairFinderCtrl',
             }
             data.addColumn('number', variableColName);
             data.addRows(dataset.map(function(row, i) {
-                var records = [row.day, row[variableName]];
+                var records = [new Date(row.date), row[variableName]];
                 if (option && option.extraColumns) {
                     option.extraColumns.forEach(function(col, i) {
                         records.splice(i+1, 0, col.data[i]);
@@ -204,11 +201,11 @@ dataMiningControllers.controller('PairFinderCtrl',
             if (!dataset) return;
             if (!callback) callback = angular.noop;
             var data = new google.visualization.DataTable();
-            data.addColumn('number', 'Day');
+            data.addColumn('date', 'Date');
             data.addColumn('number', 'Stock1');
             data.addColumn('number', 'Stock2');
             data.addRows(dataset.map(function(row) {
-                return [row.day, row.stock1Value, row.stock2Value];
+                return [new Date(row.date), row.stock1Value, row.stock2Value];
             }));
             var targetEl = angular.element(targetDiv)[0];
             var chart = new google.visualization.LineChart(targetEl);
@@ -216,7 +213,30 @@ dataMiningControllers.controller('PairFinderCtrl',
             chart.draw(data, baseGoogleChartOptions);
         }
 
-        $scope.targetStartDate = '2014-10-01';
+        $scope.drawGraphWithStd = function(dataset, variableName, option, targetDiv, callback) {
+            if (variableName == null) variableName = 'priceRatio';
+            if (option == null) option = {};
+            var mean = option.mean || StatHelper.mean(dataset, variableName);
+            var std = option.std || StatHelper.std(dataset, variableName);
+            option.extraColumns = ([2, 1, 0, -1, -2]).map(function(numOfstd) {
+                return {
+                    name: 'mean' + (numOfstd == 0? '' : (numOfstd > 0?
+                        (' + ' + numOfstd) : (' - ' + (numOfstd * -1) ) + ' sd')),
+                    data: dataset.map(function() {return -std * numOfstd + mean;}),
+                    options: {
+                        lineWidth: 1.5,
+                        lineDashStyle: [4, 2],
+                        enableInteractivity: false,
+                        tooltip: 'none'
+                    }
+                };
+            });
+            delete option.mean;
+            delete option.std;
+            $scope.drawOneVariableGraph(dataset, variableName, option, targetDiv, callback);
+        };
+
+        $scope.targetStartDate = '2013-10-01';
         $scope.targetEndDate = '2015-10-01';
         $scope.doAllStrategy = function() {
             if (!$scope.targetStartDate || !$scope.targetEndDate ||
@@ -244,24 +264,30 @@ dataMiningControllers.controller('PairFinderCtrl',
                 );
                 var mean = StatHelper.mean(historicDataset, 'priceRatio');
                 var std = StatHelper.std(historicDataset, 'priceRatio');
-                var extraColumns = ([2, 1, 0, -1, -2]).map(function(numOfstd) {
-                    return {
-                        name: 'mean' + numOfstd == 0? '' : (numOfstd > 0? (' + ' + numOfstd) : (' - ' + (numOfstd * -1) ) + ' sd'),
-                        data: targetDataset.map(function() {
-                            return -std * numOfstd + mean;
-                        }),
-                        options: {
-                            lineWidth: 1.5,
-                            lineDashStyle: [4, 2],
-                            enableInteractivity: false,
-                            tooltip: 'none'
-                        }
-                    };
-                });
-                $scope.drawOneVariableGraph(
+                // var extraColumns = ([2, 1, 0, -1, -2]).map(function(numOfstd) {
+                //     return {
+                //         name: 'mean' + numOfstd == 0? '' : (numOfstd > 0? (' + ' + numOfstd) : (' - ' + (numOfstd * -1) ) + ' sd'),
+                //         data: targetDataset.map(function() {
+                //             return -std * numOfstd + mean;
+                //         }),
+                //         options: {
+                //             lineWidth: 1.5,
+                //             lineDashStyle: [4, 2],
+                //             enableInteractivity: false,
+                //             tooltip: 'none'
+                //         }
+                //     };
+                // });
+                // $scope.drawOneVariableGraph(
+                //     targetDataset,
+                //     'priceRatio',
+                //     { extraColumns: extraColumns },
+                //     '.targetGraph'
+                // );
+                $scope.drawGraphWithStd(
                     targetDataset,
                     'priceRatio',
-                    { extraColumns: extraColumns },
+                    {mean: mean, std: std},
                     '.targetGraph'
                 );
                 console.log($scope.strategiesResults);

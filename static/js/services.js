@@ -312,15 +312,6 @@ dataMiningServices.factory('StrategyProcessor',
 				if (!_opening) {
 					var exceedUpperOpenBound = value >= openAbsBounds[0];
 					var exceedLowerOpenBound = value <= openAbsBounds[1];
-					// if (value >= openAbsBounds[0]) {
-					// 	lastOpen = {type: 'OPEN', stock1Action: 'SHORT', stock2Action: 'LONG'};
-					// 	actions.push(angular.extend({}, row, lastOpen));
-					// 	_opening = true;
-					// } else if (value <= openAbsBounds[1]) {
-					// 	lastOpen = {type: 'OPEN', stock1Action: 'LONG', stock2Action: 'SHORT'};
-					// 	actions.push(angular.extend({}, row, lastOpen));
-					// 	_opening = true;
-					// }
 					if (exceedUpperOpenBound || exceedLowerOpenBound) {
 						lastOpen = {
 							type: 'OPEN',
@@ -499,6 +490,10 @@ dataMiningServices.value('StockCategories', [
 	{
 		name: 'E-Commerce & Internet Services',
 		stocks: '0250.HK, 0327.HK, 0395.HK, 0400.HK, 0434.HK, 0484.HK, 0536.HK, 0543.HK, 0673.HK, 0700.HK, 0777.HK, 0799.HK, 1022.HK, 1026.HK, 1094.HK, 1980.HK, 2100.HK, 2280.HK, 6899.HK, 8007.HK, 8026.HK, 8081.HK, 8121.HK, 8206.HK, 8255.HK, 8266.HK, 8267.HK, 8317.HK, 8361.HK, 8400.HK'
+	},
+	{
+		name: 'Dev Testing',
+		stocks: '2800.HK, 2823.HK'
 	}
 ]);
 
