@@ -127,12 +127,13 @@ dataMiningControllers.controller('PairFinderCtrl',
                 $scope.drawValuesGraph(score.dataset, '.graph-2', function() {
                     $scope.pair.dataset = DatasetPreparator.makeRelativePriceRatio(
                         $scope.pair.dataset
-                    ); 
-                    $scope.drawOneVariableGraph(score.dataset, 'priceRatio', '.graph-3');
+                    );
+                    $scope.drawOneVariableGraph(score.dataset, 'priceRatio', null, '.graph-3');
                 });
             });
             $scope.strategiesResults = null;
-            $('.modal').modal('show');
+            $scope.doAllStrategy();
+            angular.element('.pair-detail-modal').modal('show');
         };
 
         $scope.openComparingPage = function(stock1, stock2) {
@@ -143,38 +144,60 @@ dataMiningControllers.controller('PairFinderCtrl',
 
         var baseGoogleChartOptions = {
             legend: 'none',
-            width: '650',
+            width: 720,
             height: 450,
             lineWidth: 1,
             vAxis: {
                 // viewWindow: {max: 2, min: -2},
-                baseline: 0,
+                // baseline: 0,
                 format: '#.##'
             },
-            hAxis: {gridlines: {count: 10}},
+            hAxis: {gridlines: {count: 10, color: '#eee'}, title: 'Day'},
+            crosshair: { trigger: 'both', opacity: '0.5'},
             chartArea: {
                 width: '80%',
                 height: '80%'
             }
         };
 
-        $scope.drawOneVariableGraph = function(dataset, variableName, targetDiv, callback) {
+        $scope.drawOneVariableGraph = function(dataset, variableName, option, targetDiv, callback) {
             if (!dataset) return;
             if (!callback) callback = angular.noop;
+            var chartOptions = baseGoogleChartOptions;
             var data = new google.visualization.DataTable();
+            var variableColName = typeof variableName === 'string' && variableName.length > 1 ? (
+                variableName.slice(0, 1).toUpperCase() +
+                variableName.slice(1).replace(/([A-Z])/g, ' $1')
+            ) : variableName;
             data.addColumn('number', 'Day');
-            data.addColumn('number');
-            data.addRows(dataset.map(function(row) {
-                return [row.day, row[variableName]];
+            if (option && option.extraColumns) {
+                option.extraColumns.forEach(function(col) {
+                    data.addColumn('number', col.name);
+                });
+            }
+            data.addColumn('number', variableColName);
+            data.addRows(dataset.map(function(row, i) {
+                var records = [row.day, row[variableName]];
+                if (option && option.extraColumns) {
+                    option.extraColumns.forEach(function(col, i) {
+                        records.splice(i+1, 0, col.data[i]);
+                    });
+                }
+                return records
             }));
+            if (option && option.extraColumns) {
+                var series = option.extraColumns.map(function(col) {return col.options;});
+                if (chartOptions.series) series.push(chartOptions.series[0] || null);
+                chartOptions = angular.extend({}, chartOptions, {series: series});
+            }
             var targetEl = angular.element(targetDiv)[0];
             var chart = new google.visualization.LineChart(targetEl);
             google.visualization.events.addOneTimeListener(chart, 'ready', callback)
-            chart.draw(data, baseGoogleChartOptions);
+            chart.draw(data, chartOptions);
         };
 
         $scope.drawScoreGraph = function(dataset, targetDiv, callback) {
-            $scope.drawOneVariableGraph(dataset, 'deltaValue', targetDiv, callback);
+            $scope.drawOneVariableGraph(dataset, 'deltaValue', null, targetDiv, callback);
         };
 
         $scope.drawValuesGraph = function(dataset, targetDiv, callback) {
@@ -210,26 +233,36 @@ dataMiningControllers.controller('PairFinderCtrl',
             var promise1 = getDataPromise($scope.pair.stock1);
             var promise2 = getDataPromise($scope.pair.stock2);
             $q.all([promise1, promise2]).then(function(responses) {
-                // var preDefined = {
-                //     mean1: StatHelper.mean($scope.pair.dataset, 'stock1Price'),
-                //     mean2: StatHelper.mean($scope.pair.dataset, 'stock2Price'),
-                //     std1: StatHelper.std($scope.pair.dataset, 'stock1Price'),
-                //     std2: StatHelper.std($scope.pair.dataset, 'stock2Price')
-                // };
-                // var targetData = PairCalculator[$scope.pairingRule](
-                //     responses[0].data.results,
-                //     responses[1].data.results,
-                //     preDefined
-                // );
                 var stockData1 = responses[0].data.results;
                 var stockData2 = responses[1].data.results;
                 var targetDataset =  DatasetPreparator.makeSimpleDataset(stockData1, stockData2);
                 var historicDataset = DatasetPreparator.makeRelativePriceRatio($scope.pair.dataset);
                 targetDataset = DatasetPreparator.makeRelativePriceRatio(targetDataset);
-                $scope.drawOneVariableGraph(targetDataset, 'priceRatio', '.targetGraph');
                 $scope.strategiesResults = StrategyProcessor.doAllStrategies(
                     historicDataset,
                     targetDataset
+                );
+                var mean = StatHelper.mean(historicDataset, 'priceRatio');
+                var std = StatHelper.std(historicDataset, 'priceRatio');
+                var extraColumns = ([2, 1, 0, -1, -2]).map(function(numOfstd) {
+                    return {
+                        name: 'mean' + numOfstd == 0? '' : (numOfstd > 0? (' + ' + numOfstd) : (' - ' + (numOfstd * -1) ) + ' sd'),
+                        data: targetDataset.map(function() {
+                            return -std * numOfstd + mean;
+                        }),
+                        options: {
+                            lineWidth: 1.5,
+                            lineDashStyle: [4, 2],
+                            enableInteractivity: false,
+                            tooltip: 'none'
+                        }
+                    };
+                });
+                $scope.drawOneVariableGraph(
+                    targetDataset,
+                    'priceRatio',
+                    { extraColumns: extraColumns },
+                    '.targetGraph'
                 );
                 console.log($scope.strategiesResults);
             });

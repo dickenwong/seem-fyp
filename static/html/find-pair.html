@@ -92,7 +92,7 @@
         </div>
     </section>
 
-    <section class="modal fade">
+    <section class="modal fade pair-detail-modal">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <ul class="nav nav-tabs pink-tab-header">
@@ -137,13 +137,14 @@
                                 <thead>
                                     <tr>
                                         <th style="">Strategy</th>
-                                        <th style="width: 11.5%">Profit</th>
-                                        <th style="width: 11.5%">Open at (±)</th>
-                                        <th style="width: 11.5%">Close at (±)</th>
-                                        <th style="width: 11.5%">Open Counts</th>
-                                        <th style="width: 11.5%">Holding Days</th>
-                                        <th style="width: 11.5%">Is Holding</th>
-                                        <th style="width: 11.5%">Profit / Holding Day</th>
+                                        <th style="width: 11%">Profit</th>
+                                        <th style="width: 11%">Profit (excluding Transaction Cost)</th>
+                                        <th style="width: 10%">Open at</th>
+                                        <th style="width: 10%">Close at</th>
+                                        <th style="width: 10%">Open Counts</th>
+                                        <th style="width: 10%">Holding Days</th>
+                                        <th style="width: 10%">Is Holding</th>
+                                        <!-- <th style="width: 10%">Profit / Holding Day</th> -->
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -151,17 +152,20 @@
                                         <td class="col-strategy-name" ng-bind="result.strategy.name"></td>
                                         <td ng-bind="result.result.profit | number:4"></td>
                                         <td>
-                                            <span ng-bind="result.result.openAbsBounds[0]| number:3"></span>, 
+                                            {{ (result.result.profit - result.result.transactionCost)  | number:4 }}
+                                        </td>
+                                        <td>
+                                            <span ng-bind="result.result.openAbsBounds[0]| number:3"></span>,
                                             <span ng-bind="result.result.openAbsBounds[1]| number:3"></span>
                                         </td>
                                         <td>
-                                            <span ng-bind="result.result.closeAbsBounds[0]| number:3"></span>, 
+                                            <span ng-bind="result.result.closeAbsBounds[0]| number:3"></span>,
                                             <span ng-bind="result.result.closeAbsBounds[1]| number:3"></span>
                                         </td>
                                         <td ng-bind="result.result.openCounts"></td>
                                         <td ng-bind="result.result.holdingDuration"></td>
                                         <td ng-bind="result.result.isHolding"></td>
-                                        <td ng-bind="result.result.profitPerHoldingDay|number:5"></td>
+                                        <!-- <td ng-bind="result.result.profitPerHoldingDay|number:5"></td> -->
                                     </tr>
                                 </tbody>
                             </table>

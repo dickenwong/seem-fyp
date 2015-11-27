@@ -21,6 +21,7 @@ router.get('/quotes/:stockCode/', function (req, res) {
 	var endDate = new Date(decodeURIComponent(req.query.end));
 	var finder = new PairFinder();
 	finder.getStockHistoricalData(stockCode, startDate, endDate).then(function (data) {
+		res.set('Cache-Control', 'public, max-age=31536000');
 		res.json(data);
 	});
 });

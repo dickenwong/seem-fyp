@@ -22,6 +22,7 @@
 	color: #BBB;
 }
 .modal-dialog.modal-lg {
+	min-width: 720px;
     width: 90%;
     max-width: 800px;
     margin-left: auto;
@@ -43,7 +44,7 @@
     margin: 10px auto;
 }
 .col-strategy-name {
-	font-size: 12px;
+	font-size: 13px;
 	padding-top: 0;
 	padding-bottom: 0;
 	line-height: 36px;
