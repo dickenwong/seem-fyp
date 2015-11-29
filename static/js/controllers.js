@@ -157,6 +157,7 @@ dataMiningControllers.controller('PairFinderCtrl',
                 });
             });
             $scope.strategiesResults = null;
+            $scope.strategyResult = null;
             $scope.doAllStrategy();
             angular.element('.pair-detail-modal').modal('show');
         };
@@ -178,7 +179,7 @@ dataMiningControllers.controller('PairFinderCtrl',
             tooltip: { trigger: 'focus' },
             selectionMode: 'multiple',
             chartArea: {
-                width: '75%',
+                width: '72%',
                 height: '80%',
                 left: '8%'
             }
@@ -252,12 +253,15 @@ dataMiningControllers.controller('PairFinderCtrl',
             return {chart: chart, data: data};
         }
 
-        $scope.drawGraphWithStd = function(dataset, variableName, option, targetDiv, callback, customStds) {
+        $scope.drawGraphWithStd = function(dataset, variableName, option, targetDiv, callback, stdList) {
             if (variableName == null) variableName = 'priceRatio';
             if (option == null) option = {};
             var mean = option.mean || StatHelper.mean(dataset, variableName);
             var std = option.std || StatHelper.std(dataset, variableName);
-            option.extraColumns = (customStds || [2, 1, 0, -1, -2]).map(function(numOfstd) {
+            // stdList = (stdList || [2, 1, 0, -1, -2]).filter(function(item, pos, self) {
+            //     return self.indexOf(item) == pos;
+            // });
+            option.extraColumns = (stdList || [2, 1, 0, -1, -2]).map(function(numOfstd) {
                 return {
                     name: 'mean' + (numOfstd == 0? '' : (numOfstd > 0?
                         (' + ' + numOfstd) : (' - ' + (numOfstd * -1) )) + ' sd'),
@@ -446,6 +450,7 @@ dataMiningControllers.controller('PairFinderCtrl',
                 selections.push({row: rowIndex, column: stdList.length + 1});
             });
             strategyGraph.chart.setSelection(selections);
+            $scope.strategyResult = strategyResult;
         };
 
     }]

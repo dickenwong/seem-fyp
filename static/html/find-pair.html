@@ -188,6 +188,29 @@
                             <div class="graph-wrapper">
                                 <div class="graph targetGraph"></div>
                             </div>
+                            <table class="table table-striped table-hover" ng-show="strategyResult">
+                                <thead>
+                                    <tr>
+                                        <th style="">Date</th>
+                                        <th style="">Action</th>
+                                        <th style="">Stock1 Price</th>
+                                        <th style="">Stock2 Price</th>
+                                        <th style="">Profit</th>
+                                        <th style="">Transaction Cost</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr ng-repeat="action in strategyResult.result.actions">
+                                        <td ng-bind="action.date"></td>
+                                        <td>{{ action.type == 'OPEN'? 'OPEN' : 'CLOSE' }}</td>
+                                        <td ng-bind="action.stock1Price"></td>
+                                        <td ng-bind="action.stock2Price"></td>
+                                        <td>{{ action.type == 'OPEN'? '-' : (action.forceClosedProfit || action.profit).toFixed(4) }}
+                                        <td>{{ action.transactionCost || action.forceClosedTransactionCost | number:4 }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <hr style="border-color: #c2c2c2;">
                             <table class="table table-striped table-hover">
                                 <thead>
                                     <tr>
