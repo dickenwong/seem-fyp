@@ -294,22 +294,18 @@ dataMiningServices.factory('StrategyProcessor',
 			var _getAbsBound = function(boundInfo) {
 				switch (boundInfo.unit) {
 					case 'std':
-						return [
-							mean + boundInfo.value * std,
-							mean - boundInfo.value * std
-						];
+						return [mean + boundInfo.value * std, mean - boundInfo.value * std];
 					case 'mean':
 						return [boundInfo.value * mean, -boundInfo.value * mean];
 				}
 			};
 			var openAbsBounds = _getAbsBound(strategy.open);
 			var closeAbsBounds = _getAbsBound(strategy.close);
-			var _opening = false;
 			var lastOpen = null;
 			var actions = [];
-			targetDataset.forEach(function(row) {
+			targetDataset.forEach(function(row, i) {
 				var value = row[valuePropertyName];
-				if (!_opening) {
+				if (!lastOpen) {
 					var exceedUpperOpenBound = value >= openAbsBounds[0];
 					var exceedLowerOpenBound = value <= openAbsBounds[1];
 					if (exceedUpperOpenBound || exceedLowerOpenBound) {
@@ -319,14 +315,15 @@ dataMiningServices.factory('StrategyProcessor',
 							stock2Action: exceedUpperOpenBound? 'LONG' : 'SHORT'
 						};
 						actions.push(angular.extend({}, row, lastOpen));
-						_opening = true;
 					}
 				} else {
 					if (value <= closeAbsBounds[0] && lastOpen.stock1Action == 'SHORT' ||
 						value >= closeAbsBounds[1] && lastOpen.stock1Action == 'LONG') {
 						actions.push(angular.extend({}, row, {type: 'CLOSE'}));
-						_opening = false;
 						lastOpen = null;
+					}
+					if (i == targetDataset.length - 1) {
+						actions.push(angular.extend({}, row, {type: 'FORCE_CLOSE'}));
 					}
 				}
 			});
@@ -349,6 +346,9 @@ dataMiningServices.factory('StrategyProcessor',
 			var closeCounts = 0;
 			var holdingDuration = 0;
 			var lastOpen = null;
+			var forceClosedCounts = 0;
+			var forceClosedProfit = 0;
+			var forceClosedTransactionCost = 0;
 			var tStrategy = strategy.transaction;
 			var _getProfit = function(tValue, openAction, closeAction) {
 				var stock1Profit = (closeAction.stock1Price - openAction.stock1Price) *
@@ -375,9 +375,13 @@ dataMiningServices.factory('StrategyProcessor',
 					profit += action.profit;
 					transactionCost += action.transactionCost;
 					lastOpen = null;
-				}
-				if (i == actions.length - 1 && lastOpen) {
-
+				} else if (action.type == 'FORCE_CLOSE') {
+					forceClosedCounts += 1;
+					holdingDuration += action.day - lastOpen.day;
+					action.forceClosedProfit = _getProfit(tValue, lastOpen, action);
+					action.forceClosedTransactionCost = _getTransactionCost(tValue, action.forceClosedProfit);
+					forceClosedProfit += action.forceClosedProfit;
+					forceClosedTransactionCost += action.forceClosedTransactionCost;
 				}
 			});
 			return {
@@ -388,6 +392,9 @@ dataMiningServices.factory('StrategyProcessor',
 				isHolding: !!lastOpen,
 				profitPerHoldingDay: profit / holdingDuration,
 				transactionCost: transactionCost,
+				forceClosedCounts: forceClosedCounts + closeCounts,
+				forceClosedProfit: forceClosedProfit + profit,
+				forceClosedTransactionCost: forceClosedTransactionCost + transactionCost,
 				actions: actions
 			};
 		};
@@ -492,62 +499,16 @@ dataMiningServices.value('StockCategories', [
 		stocks: '0250.HK, 0327.HK, 0395.HK, 0400.HK, 0434.HK, 0484.HK, 0536.HK, 0543.HK, 0673.HK, 0700.HK, 0777.HK, 0799.HK, 1022.HK, 1026.HK, 1094.HK, 1980.HK, 2100.HK, 2280.HK, 6899.HK, 8007.HK, 8026.HK, 8081.HK, 8121.HK, 8206.HK, 8255.HK, 8266.HK, 8267.HK, 8317.HK, 8361.HK, 8400.HK'
 	},
 	{
+		name: 'Petroleum & Gases',
+		stocks: '0007.HK, 0091.HK, 0135.HK, 0166.HK, 0171.HK, 0228.HK, 0260.HK, 0332.HK, 0338.HK, 0342.HK, 0346.HK, 0353.HK, 0386.HK, 0467.HK, 0689.HK, 0702.HK, 0850.HK, 0852.HK, 0857.HK, 0883.HK, 0933.HK, 0934.HK, 1102.HK, 1103.HK, 1192.HK, 1205.HK, 1555.HK, 2012.HK, 2386.HK, 2686.HK'
+	},
+	{
 		name: 'Dev Testing',
 		stocks: '2800.HK, 2823.HK'
 	}
 ]);
 
 dataMiningServices.value('StrategyList', [{
-	    "name": "Open at 2 sd, close at 1.5 sd, transaction cost 0.1%",
-	    "open": {"unit": "std","value": 2},
-	    "close": {"unit": "std","value": 1.5},
-	    "transaction": {"value": 1,"accumalated": false,"cost": 0.001}
-	}, {
-	    "name": "Open at 2 sd, close at 1 sd, transaction cost 0.1%",
-	    "open": {"unit": "std","value": 2},
-	    "close": {"unit": "std","value": 1},
-	    "transaction": {"value": 1,"accumalated": false,"cost": 0.001}
-	}, {
-	    "name": "Open at 2 sd, close at 0.5 sd, transaction cost 0.1%",
-	    "open": {"unit": "std","value": 2},
-	    "close": {"unit": "std","value": 0.5},
-	    "transaction": {"value": 1,"accumalated": false,"cost": 0.001}
-	}, {
-	    "name": "Open at 2 sd, close at 0 sd, transaction cost 0.1%",
-	    "open": {"unit": "std","value": 2},
-	    "close": {"unit": "std","value": 0},
-	    "transaction": {"value": 1,"accumalated": false,"cost": 0.001}
-	}, {
-	    "name": "Open at 1.5 sd, close at 1 sd, transaction cost 0.1%",
-	    "open": {"unit": "std","value": 1.5},
-	    "close": {"unit": "std","value": 1},
-	    "transaction": {"value": 1,"accumalated": false,"cost": 0.001}
-	}, {
-	    "name": "Open at 1.5 sd, close at 0.5 sd, transaction cost 0.1%",
-	    "open": {"unit": "std","value": 1.5},
-	    "close": {"unit": "std","value": 0.5},
-	    "transaction": {"value": 1,"accumalated": false,"cost": 0.001}
-	}, {
-	    "name": "Open at 1.5 sd, close at 0 sd, transaction cost 0.1%",
-	    "open": {"unit": "std","value": 1.5},
-	    "close": {"unit": "std","value": 0},
-	    "transaction": {"value": 1,"accumalated": false,"cost": 0.001}
-	}, {
-	    "name": "Open at 1 sd, close at 0.5 sd, transaction cost 0.1%",
-	    "open": {"unit": "std","value": 1},
-	    "close": {"unit": "std","value": 0.5},
-	    "transaction": {"value": 1,"accumalated": false,"cost": 0.001}
-	}, {
-	    "name": "Open at 1 sd, close at 0 sd, transaction cost 0.1%",
-	    "open": {"unit": "std","value": 1},
-	    "close": {"unit": "std","value": 0},
-	    "transaction": {"value": 1,"accumalated": false,"cost": 0.001}
-	}, {
-	    "name": "Open at 0.5 sd, close at 0 sd, transaction cost 0.1%",
-	    "open": {"unit": "std","value": 0.5},
-	    "close": {"unit": "std","value": 0},
-	    "transaction": {"value": 1,"accumalated": false,"cost": 0.001}
-	}, {
 	    "name": "Open at 2 sd, close at 1.5 sd, transaction cost 0.5%",
 	    "open": {"unit": "std","value": 2},
 	    "close": {"unit": "std","value": 1.5},

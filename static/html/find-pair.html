@@ -71,6 +71,11 @@
     <section class="quote-data-table">
         <div class="container">
             <p class="text-warning text-center" ng-show="message" ng-bind="message"></p>
+            <div class="input-wrapper text-center" ng-show="scores.length">
+                <button class="btn btn-material-orange-600" ng-click="getStrategySummary()">
+                    Strategy Summary
+                </button>
+            </div>
             <table class="table table-striped table-hover" ng-show="scores.length">
                 <thead>
                     <tr>
@@ -89,6 +94,46 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+    </section>
+
+    <section class="modal fade strategy-summary-modal">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <section class="strategy-summary-profits" 
+                         ng-show="strategySummary.strategyProfits.length">
+                    <p class="text-muted text-right">
+                        Profit excludes Transaction Cost and Trades are force-closed in the end
+                    </p>
+                    <table class="table table-striped table-hover">
+                        <caption>
+                            <h3 ng-bind="stockCategory.name"></h3>
+                        </caption>
+                        <thead>
+                            <tr>
+                                <th style="">Strategy</th>
+                                <th style="">Top 3 Pairs Total Profit</th>
+                                <th style="">Top 10 Pairs Total Profit</th>
+                                <th style="">Top 3 Pairs Average Profit</th>
+                                <th style="">Top 10 Pairs Average Profit</th>
+                                <th style="">Max. Profit</th>
+                                <th style="">Min. Profit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="result in strategySummary.strategyProfits">
+                                <td class="col-strategy-name" ng-bind="result.strategy.name"></td>
+                                <td ng-bind="result.totalTop3Profit | number:4"></td>
+                                <td ng-bind="result.totalTop10Profit | number:4"></td>
+                                <td>{{ (result.totalTop3Profit / 3) | number:4 }}</td>
+                                <td>{{ (result.totalTop10Profit / 10) | number:4 }}</td>
+                                <td ng-bind="result.maxProfit | number:4"></td>
+                                <td ng-bind="result.minProfit | number:4"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+            </div>
         </div>
     </section>
 
@@ -137,10 +182,11 @@
                                 <thead>
                                     <tr>
                                         <th style="">Strategy</th>
-                                        <th style="width: 11%">Profit</th>
-                                        <th style="width: 11%">Profit (excluding Transaction Cost)</th>
-                                        <th style="width: 10%">Open at</th>
-                                        <th style="width: 10%">Close at</th>
+                                        <th style="width: 12.5%">Profit</th>
+                                        <th style="width: 12.5%">Profit (excluding Transaction Cost)</th>
+                                        <th style="width: 18%">Profit (Force Close and excluding Transaction Cost)</th>
+                                        <!-- <th style="width: 10%">Open at</th> -->
+                                        <!-- <th style="width: 10%">Close at</th> -->
                                         <th style="width: 10%">Open Counts</th>
                                         <th style="width: 10%">Holding Days</th>
                                         <th style="width: 10%">Is Holding</th>
@@ -155,13 +201,16 @@
                                             {{ (result.result.profit - result.result.transactionCost)  | number:4 }}
                                         </td>
                                         <td>
+                                            {{ (result.result.forceClosedProfit - result.result.forceClosedTransactionCost)  | number:4 }}
+                                        </td>
+                                        <!-- <td>
                                             <span ng-bind="result.result.openAbsBounds[0]| number:3"></span>,
                                             <span ng-bind="result.result.openAbsBounds[1]| number:3"></span>
                                         </td>
                                         <td>
                                             <span ng-bind="result.result.closeAbsBounds[0]| number:3"></span>,
                                             <span ng-bind="result.result.closeAbsBounds[1]| number:3"></span>
-                                        </td>
+                                        </td> -->
                                         <td ng-bind="result.result.openCounts"></td>
                                         <td ng-bind="result.result.holdingDuration"></td>
                                         <td ng-bind="result.result.isHolding"></td>
