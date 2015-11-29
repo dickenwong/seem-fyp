@@ -174,7 +174,9 @@ dataMiningControllers.controller('PairFinderCtrl',
             lineWidth: 1,
             vAxis: {format: '#.##'},
             hAxis: {gridlines: {color: '#eee'}, title: 'Date'},
-            crosshair: { trigger: 'both', opacity: '0.5'},
+            crosshair: { trigger: 'focus', opacity: '0.5'},
+            tooltip: { trigger: 'focus' },
+            selectionMode: 'multiple',
             chartArea: {
                 width: '75%',
                 height: '80%',
@@ -212,14 +214,25 @@ dataMiningControllers.controller('PairFinderCtrl',
                 if (chartOptions.series) series.push(chartOptions.series[0] || null);
                 chartOptions = angular.extend({}, chartOptions, {series: series});
             }
+            if (option && option.points) {
+                var pointColIndex = data.addColumn({type: 'string', role: 'style'});
+                option.points.forEach(function(point) {
+                    var rowIndices = data.getFilteredRows(point.filter);
+                    rowIndices.forEach(function(rowI) {
+                        data.setCell(rowI, pointColIndex, point.style || 'point {shape-type: circle;}');
+                    });
+                });
+            }
+
             var targetEl = angular.element(targetDiv)[0];
             var chart = new google.visualization.LineChart(targetEl);
             google.visualization.events.addOneTimeListener(chart, 'ready', callback)
             chart.draw(data, chartOptions);
+            return {chart: chart, data: data};
         };
 
         $scope.drawScoreGraph = function(dataset, targetDiv, callback) {
-            $scope.drawOneVariableGraph(dataset, 'deltaValue', null, targetDiv, callback);
+            return $scope.drawOneVariableGraph(dataset, 'deltaValue', null, targetDiv, callback);
         };
 
         $scope.drawValuesGraph = function(dataset, targetDiv, callback) {
@@ -236,17 +249,18 @@ dataMiningControllers.controller('PairFinderCtrl',
             var chart = new google.visualization.LineChart(targetEl);
             google.visualization.events.addOneTimeListener(chart, 'ready', callback)
             chart.draw(data, baseGoogleChartOptions);
+            return {chart: chart, data: data};
         }
 
-        $scope.drawGraphWithStd = function(dataset, variableName, option, targetDiv, callback) {
+        $scope.drawGraphWithStd = function(dataset, variableName, option, targetDiv, callback, customStds) {
             if (variableName == null) variableName = 'priceRatio';
             if (option == null) option = {};
             var mean = option.mean || StatHelper.mean(dataset, variableName);
             var std = option.std || StatHelper.std(dataset, variableName);
-            option.extraColumns = ([2, 1, 0, -1, -2]).map(function(numOfstd) {
+            option.extraColumns = (customStds || [2, 1, 0, -1, -2]).map(function(numOfstd) {
                 return {
                     name: 'mean' + (numOfstd == 0? '' : (numOfstd > 0?
-                        (' + ' + numOfstd) : (' - ' + (numOfstd * -1) ) + ' sd')),
+                        (' + ' + numOfstd) : (' - ' + (numOfstd * -1) )) + ' sd'),
                     data: dataset.map(function() {return -std * numOfstd + mean;}),
                     options: {
                         lineWidth: 1.5,
@@ -256,9 +270,22 @@ dataMiningControllers.controller('PairFinderCtrl',
                     }
                 };
             });
-            delete option.mean;
-            delete option.std;
-            $scope.drawOneVariableGraph(dataset, variableName, option, targetDiv, callback);
+            if (option.mean) delete option.mean;
+            if (option.std) delete option.std;
+            return $scope.drawOneVariableGraph(dataset, variableName, option, targetDiv, callback);
+        };
+
+        $scope.drawStrategyGraph = function(historicDataset, targetDataset, variableName, stdList, option, targetDiv, callback) {
+            var mean = StatHelper.mean(historicDataset, variableName);
+            var std = StatHelper.std(historicDataset, variableName);
+            return $scope.drawGraphWithStd(
+                targetDataset,
+                variableName,
+                angular.extend({mean: mean, std: std}, option),
+                targetDiv,
+                callback,
+                stdList
+            );
         };
 
         var _prepareStrategyDataset = function(stock1, stock2, targetStartDate, targetEndDate, historicDataset) {
@@ -299,12 +326,12 @@ dataMiningControllers.controller('PairFinderCtrl',
                     params.historicDataset,
                     params.targetDataset
                 );
-                var mean = StatHelper.mean(params.historicDataset, 'priceRatio');
-                var std = StatHelper.std(params.historicDataset, 'priceRatio');
-                $scope.drawGraphWithStd(
+                $scope.drawStrategyGraph(
+                    params.historicDataset,
                     params.targetDataset,
                     'priceRatio',
-                    {mean: mean, std: std},
+                    [2, 1, 0, -1, -2],
+                    null,
                     '.targetGraph'
                 );
                 console.log($scope.strategiesResults);
@@ -359,7 +386,8 @@ dataMiningControllers.controller('PairFinderCtrl',
                     if (netProfit > (strategyProfits[i].maxProfit || 0)) {
                         strategyProfits[i].maxProfit = netProfit;
                     }
-                    if (netProfit < (strategyProfits[i].minProfit || 0)) {
+                    if (strategyProfits[i].minProfit == null || 
+                        netProfit < strategyProfits[i].minProfit) {
                         strategyProfits[i].minProfit = netProfit;
                     }
                     // console.log('Pair %s - %s, Strategy %d, Profit ' + netProfit, 
@@ -383,8 +411,41 @@ dataMiningControllers.controller('PairFinderCtrl',
             ).then(function(strategyTests) {
                 console.log(strategyTests);
                 $scope.strategySummary.strategyProfits = _getStrategyProfts(strategyTests);
-
             });
+        };
+
+        $scope.clickStrategyRow = function(strategyResult) {
+            var stdList = [
+                strategyResult.strategy.open.value,
+                strategyResult.strategy.close.value,
+                0,
+                -strategyResult.strategy.close.value,
+                -strategyResult.strategy.open.value
+            ];
+            var points = strategyResult.result.actions.map(function(action) {
+                var color = action.type == 'OPEN'? 'green' : 'red';
+                return {
+                    filter: [{column: 0, value: new Date(action.date)}],
+                    style: 'point {shape-type: circle; fill-color: ' + color + ';}'
+                };
+            });
+            var strategyGraph = $scope.drawStrategyGraph(
+                strategyResult.historicDataset, 
+                strategyResult.targetDataset, 
+                'priceRatio',
+                stdList,
+                {points: points},
+                '.targetGraph'
+            );
+            var selections = [];
+            strategyResult.result.actions.forEach(function(action) {
+                var rowIndex = strategyGraph.data.getFilteredRows([{
+                    column: 0, 
+                    value: new Date(action.date)
+                }])[0];
+                selections.push({row: rowIndex, column: stdList.length + 1});
+            });
+            strategyGraph.chart.setSelection(selections);
         };
 
     }]

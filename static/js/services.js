@@ -351,14 +351,18 @@ dataMiningServices.factory('StrategyProcessor',
 			var forceClosedTransactionCost = 0;
 			var tStrategy = strategy.transaction;
 			var _getProfit = function(tValue, openAction, closeAction) {
-				var stock1Profit = (closeAction.stock1Price - openAction.stock1Price) *
-					tValue / openAction.stock1Price * (openAction.stock1Action == 'LONG'? 1 : -1);
-				var stock2Profit = (closeAction.stock2Price - openAction.stock2Price) *
-					tValue / openAction.stock2Price * (openAction.stock2Action == 'LONG'? 1 : -1);
+				var stock1Profit = closeAction.stock1Price / openAction.stock1Price *
+					 (openAction.stock1Action == 'LONG'? 1 : -1);
+				var stock2Profit = closeAction.stock2Price / openAction.stock2Price *
+					 (openAction.stock2Action == 'LONG'? 1 : -1);
 				return stock1Profit + stock2Profit;
 			};
-			var _getTransactionCost = function(tValue, tProfit) {
-				return (tValue * 2 + (tProfit || 0)) * tStrategy.cost;
+			var _getTransactionCost = function(tValue, openAction, closeAction) {
+				if (openAction && closeAction) {
+					return (tValue / openAction.stock1Price * closeAction.stock1Price +
+						tValue / openAction.stock2Price * closeAction.stock2Price) * tStrategy.cost;
+				}
+				return tValue * 2 * tStrategy.cost;
 			};
 			actions.forEach(function(action, i) {
 				var tValue = tStrategy.value + profit * (+tStrategy.accumalated);
@@ -371,7 +375,7 @@ dataMiningServices.factory('StrategyProcessor',
 					closeCounts += 1;
 					holdingDuration += action.day - lastOpen.day;
 					action.profit = _getProfit(tValue, lastOpen, action);
-					action.transactionCost = _getTransactionCost(tValue, action.profit);
+					action.transactionCost = _getTransactionCost(tValue, lastOpen, action);
 					profit += action.profit;
 					transactionCost += action.transactionCost;
 					lastOpen = null;
@@ -379,7 +383,7 @@ dataMiningServices.factory('StrategyProcessor',
 					forceClosedCounts += 1;
 					holdingDuration += action.day - lastOpen.day;
 					action.forceClosedProfit = _getProfit(tValue, lastOpen, action);
-					action.forceClosedTransactionCost = _getTransactionCost(tValue, action.forceClosedProfit);
+					action.forceClosedTransactionCost = _getTransactionCost(tValue, lastOpen, action);
 					forceClosedProfit += action.forceClosedProfit;
 					forceClosedTransactionCost += action.forceClosedTransactionCost;
 				}
@@ -403,6 +407,8 @@ dataMiningServices.factory('StrategyProcessor',
 			if (valuePropertyName == null) valuePropertyName = 'priceRatio';
 			return _strategies.map(function(strategy) {
 				return {
+					historicDataset: historicDataset,
+					targetDataset: targetDataset,
 					strategy: strategy,
 					result: doStrategy(
 						strategy,
