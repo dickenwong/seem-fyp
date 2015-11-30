@@ -330,7 +330,7 @@ dataMiningControllers.controller('PairFinderCtrl',
                     params.historicDataset,
                     params.targetDataset
                 );
-                $scope.drawStrategyGraph(
+                $scope.strategyGraph = $scope.drawStrategyGraph(
                     params.historicDataset,
                     params.targetDataset,
                     'priceRatio',
@@ -394,11 +394,6 @@ dataMiningControllers.controller('PairFinderCtrl',
                         netProfit < strategyProfits[i].minProfit) {
                         strategyProfits[i].minProfit = netProfit;
                     }
-                    // console.log('Pair %s - %s, Strategy %d, Profit ' + netProfit, 
-                    //     strategyTest.pair.stock1, 
-                    //     strategyTest.pair.stock2,
-                    //     i
-                    // );
                 });
             });
             return strategyProfits;
@@ -407,8 +402,13 @@ dataMiningControllers.controller('PairFinderCtrl',
         $scope.getStrategySummary = function() {
             angular.element('.strategy-summary-modal').modal('show');
             $scope.strategySummary = {};
+            var start = new Date($scope.targetStartDate);            
+            var end = new Date($scope.targetEndDate);            
+            var dayRange = (end - start) / 1000 / 60 / 60 / 24;
             _doStrategiesOnTopPairs(
-                $scope.scores, 
+                $scope.scores.filter(function(pair) {
+                    return pair.dayCounts > dayRange * 0.4
+                }), 
                 10, 
                 $scope.targetStartDate, 
                 $scope.targetEndDate
@@ -433,7 +433,7 @@ dataMiningControllers.controller('PairFinderCtrl',
                     style: 'point {shape-type: circle; fill-color: ' + color + ';}'
                 };
             });
-            var strategyGraph = $scope.drawStrategyGraph(
+            $scope.strategyGraph = $scope.drawStrategyGraph(
                 strategyResult.historicDataset, 
                 strategyResult.targetDataset, 
                 'priceRatio',
@@ -443,13 +443,13 @@ dataMiningControllers.controller('PairFinderCtrl',
             );
             var selections = [];
             strategyResult.result.actions.forEach(function(action) {
-                var rowIndex = strategyGraph.data.getFilteredRows([{
+                var rowIndex = $scope.strategyGraph.data.getFilteredRows([{
                     column: 0, 
                     value: new Date(action.date)
                 }])[0];
                 selections.push({row: rowIndex, column: stdList.length + 1});
             });
-            strategyGraph.chart.setSelection(selections);
+            $scope.strategyGraph.chart.setSelection(selections);
             $scope.strategyResult = strategyResult;
         };
 
