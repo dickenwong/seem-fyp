@@ -515,101 +515,111 @@ dataMiningServices.value('StockCategories', [
 ]);
 
 dataMiningServices.value('StrategyList', [{
-	    "name": "Open at 2 sd, close at 1.5 sd, transaction cost 0.5%",
-	    "open": {"unit": "std","value": 2},
-	    "close": {"unit": "std","value": 1.5},
-	    "transaction": {"value": 1,"accumalated": false,"cost": 0.005}
-	}, {
-	    "name": "Open at 2 sd, close at 1 sd, transaction cost 0.5%",
-	    "open": {"unit": "std","value": 2},
-	    "close": {"unit": "std","value": 1},
-	    "transaction": {"value": 1,"accumalated": false,"cost": 0.005}
-	}, {
-	    "name": "Open at 2 sd, close at 0.5 sd, transaction cost 0.5%",
-	    "open": {"unit": "std","value": 2},
-	    "close": {"unit": "std","value": 0.5},
-	    "transaction": {"value": 1,"accumalated": false,"cost": 0.005}
-	}, {
-	    "name": "Open at 2 sd, close at 0 sd, transaction cost 0.5%",
-	    "open": {"unit": "std","value": 2},
-	    "close": {"unit": "std","value": 0},
-	    "transaction": {"value": 1,"accumalated": false,"cost": 0.005}
-	}, {
-	    "name": "Open at 1.5 sd, close at 1 sd, transaction cost 0.5%",
-	    "open": {"unit": "std","value": 1.5},
-	    "close": {"unit": "std","value": 1},
-	    "transaction": {"value": 1,"accumalated": false,"cost": 0.005}
-	}, {
-	    "name": "Open at 1.5 sd, close at 0.5 sd, transaction cost 0.5%",
-	    "open": {"unit": "std","value": 1.5},
-	    "close": {"unit": "std","value": 0.5},
-	    "transaction": {"value": 1,"accumalated": false,"cost": 0.005}
-	}, {
-	    "name": "Open at 1.5 sd, close at 0 sd, transaction cost 0.5%",
-	    "open": {"unit": "std","value": 1.5},
-	    "close": {"unit": "std","value": 0},
-	    "transaction": {"value": 1,"accumalated": false,"cost": 0.005}
-	}, {
-	    "name": "Open at 1 sd, close at 0.5 sd, transaction cost 0.5%",
-	    "open": {"unit": "std","value": 1},
-	    "close": {"unit": "std","value": 0.5},
-	    "transaction": {"value": 1,"accumalated": false,"cost": 0.005}
-	}, {
-	    "name": "Open at 1 sd, close at 0 sd, transaction cost 0.5%",
-	    "open": {"unit": "std","value": 1},
-	    "close": {"unit": "std","value": 0},
-	    "transaction": {"value": 1,"accumalated": false,"cost": 0.005}
-	}, {
-	    "name": "Open at 0.5 sd, close at 0 sd, transaction cost 0.5%",
-	    "open": {"unit": "std","value": 0.5},
-	    "close": {"unit": "std","value": 0},
-	    "transaction": {"value": 1,"accumalated": false,"cost": 0.005}
-	}, {
+	//     "name": "Open at 2 sd, close at 1.5 sd, transaction cost 0.5%",
+	//     "open": {"unit": "std","value": 2},
+	//     "close": {"unit": "std","value": 1.5},
+	//     "transaction": {"value": 1,"accumalated": false,"cost": 0.005}
+	// }, {
+	//     "name": "Open at 2 sd, close at 1 sd, transaction cost 0.5%",
+	//     "open": {"unit": "std","value": 2},
+	//     "close": {"unit": "std","value": 1},
+	//     "transaction": {"value": 1,"accumalated": false,"cost": 0.005}
+	// }, {
+	//     "name": "Open at 2 sd, close at 0.5 sd, transaction cost 0.5%",
+	//     "open": {"unit": "std","value": 2},
+	//     "close": {"unit": "std","value": 0.5},
+	//     "transaction": {"value": 1,"accumalated": false,"cost": 0.005}
+	// }, {
+	//     "name": "Open at 2 sd, close at 0 sd, transaction cost 0.5%",
+	//     "open": {"unit": "std","value": 2},
+	//     "close": {"unit": "std","value": 0},
+	//     "transaction": {"value": 1,"accumalated": false,"cost": 0.005}
+	// }, {
+	//     "name": "Open at 1.5 sd, close at 1 sd, transaction cost 0.5%",
+	//     "open": {"unit": "std","value": 1.5},
+	//     "close": {"unit": "std","value": 1},
+	//     "transaction": {"value": 1,"accumalated": false,"cost": 0.005}
+	// }, {
+	//     "name": "Open at 1.5 sd, close at 0.5 sd, transaction cost 0.5%",
+	//     "open": {"unit": "std","value": 1.5},
+	//     "close": {"unit": "std","value": 0.5},
+	//     "transaction": {"value": 1,"accumalated": false,"cost": 0.005}
+	// }, {
+	//     "name": "Open at 1.5 sd, close at 0 sd, transaction cost 0.5%",
+	//     "open": {"unit": "std","value": 1.5},
+	//     "close": {"unit": "std","value": 0},
+	//     "transaction": {"value": 1,"accumalated": false,"cost": 0.005}
+	// }, {
+	//     "name": "Open at 1 sd, close at 0.5 sd, transaction cost 0.5%",
+	//     "open": {"unit": "std","value": 1},
+	//     "close": {"unit": "std","value": 0.5},
+	//     "transaction": {"value": 1,"accumalated": false,"cost": 0.005}
+	// }, {
+	//     "name": "Open at 1 sd, close at 0 sd, transaction cost 0.5%",
+	//     "open": {"unit": "std","value": 1},
+	//     "close": {"unit": "std","value": 0},
+	//     "transaction": {"value": 1,"accumalated": false,"cost": 0.005}
+	// }, {
+	//     "name": "Open at 0.5 sd, close at 0 sd, transaction cost 0.5%",
+	//     "open": {"unit": "std","value": 0.5},
+	//     "close": {"unit": "std","value": 0},
+	//     "transaction": {"value": 1,"accumalated": false,"cost": 0.005}
+	// }, {
+	    "id": "A3",
 	    "name": "Open at 2 sd, close at 1.5 sd, transaction cost 1%",
 	    "open": {"unit": "std","value": 2},
 	    "close": {"unit": "std","value": 1.5},
 	    "transaction": {"value": 1,"accumalated": false,"cost": 0.01}
 	}, {
+	    "id": "A2",
 	    "name": "Open at 2 sd, close at 1 sd, transaction cost 1%",
 	    "open": {"unit": "std","value": 2},
 	    "close": {"unit": "std","value": 1},
 	    "transaction": {"value": 1,"accumalated": false,"cost": 0.01}
 	}, {
+	    "id": "A1",
 	    "name": "Open at 2 sd, close at 0.5 sd, transaction cost 1%",
 	    "open": {"unit": "std","value": 2},
 	    "close": {"unit": "std","value": 0.5},
 	    "transaction": {"value": 1,"accumalated": false,"cost": 0.01}
 	}, {
+	    "id": "A0",
 	    "name": "Open at 2 sd, close at 0 sd, transaction cost 1%",
 	    "open": {"unit": "std","value": 2},
 	    "close": {"unit": "std","value": 0},
 	    "transaction": {"value": 1,"accumalated": false,"cost": 0.01}
 	}, {
+	    "id": "B2",
 	    "name": "Open at 1.5 sd, close at 1 sd, transaction cost 1%",
 	    "open": {"unit": "std","value": 1.5},
 	    "close": {"unit": "std","value": 1},
 	    "transaction": {"value": 1,"accumalated": false,"cost": 0.01}
 	}, {
+	    "id": "B1",
 	    "name": "Open at 1.5 sd, close at 0.5 sd, transaction cost 1%",
 	    "open": {"unit": "std","value": 1.5},
 	    "close": {"unit": "std","value": 0.5},
 	    "transaction": {"value": 1,"accumalated": false,"cost": 0.01}
 	}, {
+	    "id": "B0",
 	    "name": "Open at 1.5 sd, close at 0 sd, transaction cost 1%",
 	    "open": {"unit": "std","value": 1.5},
 	    "close": {"unit": "std","value": 0},
 	    "transaction": {"value": 1,"accumalated": false,"cost": 0.01}
 	}, {
+	    "id": "C1",
 	    "name": "Open at 1 sd, close at 0.5 sd, transaction cost 1%",
 	    "open": {"unit": "std","value": 1},
 	    "close": {"unit": "std","value": 0.5},
 	    "transaction": {"value": 1,"accumalated": false,"cost": 0.01}
 	}, {
+	    "id": "C0",
 	    "name": "Open at 1 sd, close at 0 sd, transaction cost 1%",
 	    "open": {"unit": "std","value": 1},
 	    "close": {"unit": "std","value": 0},
 	    "transaction": {"value": 1,"accumalated": false,"cost": 0.01}
 	}, {
+	    "id": "D0",
 	    "name": "Open at 0.5 sd, close at 0 sd, transaction cost 1%",
 	    "open": {"unit": "std","value": 0.5},
 	    "close": {"unit": "std","value": 0},

@@ -8,8 +8,15 @@ moment().utcOffset(480);
 
 function PairFinder() {
 	var self = this;
+	var cache = [];
 
 	self.getStockHistoricalData = function(stockCode, startDate, endDate) {
+		var cachedData = self.getStockDataFromCache(stockCode, startDate, endDate);
+		if (cachedData) {
+			return new Promise(function (resolve, reject) {
+				resolve(cachedData);
+			});
+		}
 		var reqDetail = {
 			method: 'GET',
 			url: 'http://real-chart.finance.yahoo.com/table.csv',
@@ -29,12 +36,44 @@ function PairFinder() {
 			}).data;
 			var lastRecord = results[results.length - 1];
 			if (lastRecord && lastRecord.Date == '') results.pop();
-			return {
+			var data = {
 				headersInOrder: headersInOrder,
 				results: results
 			};
+			return data;
 		});
 	};
+
+	self.cacheStockData = function(stockCode, startDate, endDate, data) {
+		cache.forEach(function(cachedData, i) {
+			if (cachedData.stockCode == stockCode &&
+				cachedData.startDate == startDate &&
+				cachedData.endDate == endDate) {
+				cache.splice(i, 1);
+				return false;
+			}
+		});
+		cache.push({
+			stockCode: stockCode,
+			startDate: startDate,
+			endDate: endDate,
+			data: data
+		});
+	};
+
+	self.getStockDataFromCache = function(stockCode, startDate, endDate) {
+		var data = null;
+		cache.forEach(function(cachedData, i) {
+			if (cachedData.stockCode == stockCode &&
+				cachedData.startDate == startDate &&
+				cachedData.endDate == endDate) {
+				data = cachedData.data;
+				return false;
+			}
+		});
+		return data;
+	};
+
 }
 
 // var testFinder = new PairFinder();
