@@ -1,11 +1,11 @@
 'use strict';
 
+
 var dataMiningApp = angular.module('dataMiningApp', [
     'dataMiningControllers',
     'dataMiningServices'
 ]);
 
-dataMiningApp.constant('Papa', Papa);
 if (typeof google !== 'undefined') {
 	dataMiningApp.constant('google', google);
 	dataMiningApp.run(['google', function(google) {

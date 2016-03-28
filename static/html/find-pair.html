@@ -1,274 +1,357 @@
 <!DOCTYPE html>
 <html lang="en-us" ng-app="dataMiningApp">
 <head>
-    <meta charset="utf-8">
-    <title>Pair Finder</title>
-    <link rel="stylesheet" href="./lib/bootstrap-3.3.5/css/bootstrap.min.css">
-    <link rel="stylesheet" href="./lib/bootstrap-material-design/css/material-fullpalette.min.css">
-    <link rel="stylesheet" href="./lib/bootstrap-material-design/css/ripples.min.css">
-    <link rel="stylesheet" href="./lib/bootstrap-material-design/css/roboto.min.css">
-    <link rel="stylesheet" href="./css/style.css">
+  <meta charset="utf-8">
+  <title>Pair Finder</title>
+  <link rel="stylesheet" href="./lib/bootstrap-3.3.5/css/bootstrap.min.css">
+  <link rel="stylesheet" href="./lib/bootstrap-material-design/css/material-fullpalette.min.css">
+  <link rel="stylesheet" href="./lib/bootstrap-material-design/css/ripples.min.css">
+  <link rel="stylesheet" href="./lib/bootstrap-material-design/css/roboto.min.css">
+  <link rel="stylesheet" href="./css/style.css">
 
-    <script src="./lib/es5-shim.min.js"></script>
-    <script src="./lib/jquery-1.11.3.min.js"></script>
-    <script src="./lib/bootstrap-3.3.5/js/bootstrap.min.js"></script>
-    <script src="./lib/bootstrap-material-design/js/material.min.js"></script>
-    <script src="./lib/bootstrap-material-design/js/ripples.min.js"></script>
-    <script src="./lib/papaparse.min.js"></script>
-    <script src="./lib/angular-1.4.x.min.js"></script>
+  <script src="./lib/es5-shim.min.js"></script>
+  <script src="./lib/jquery-1.11.3.min.js"></script>
+  <script src="./lib/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+  <script src="./lib/bootstrap-material-design/js/material.min.js"></script>
+  <script src="./lib/bootstrap-material-design/js/ripples.min.js"></script>
+  <script src="./lib/papaparse.min.js"></script>
+  <script src="./lib/simple_statistic.min.js"></script>
+  <script src="./lib/angular-1.4.x.min.js"></script>
 
-    <script src="https://www.google.com/jsapi"></script>
+  <script src="https://www.google.com/jsapi"></script>
 
-    <script src="./js/app.js"></script>
-    <script src="./js/controllers.js"></script>
-    <script src="./js/services.js"></script>
+  <script src="./js/app.js"></script>
+  <script src="./js/controllers.js"></script>
+  <script src="./js/services.js"></script>
+  <script src="./js/filters.js"></script>
 
 
 <!--
-    <script src="./js/data-mining.js"></script>
+  <script src="./js/data-mining.js"></script>
  -->
 </head>
 <body>
 <main ng-controller="PairFinderCtrl" ng-cloak>
-    <section class="input-yql-section text-center">
-        <div class="container">
-            <h3>2015-16 SEEM4998PJ01 <br>Final Year Project</h3>
-            <p class="text-muted text-center">
-                Please strictly follow the ISO date format (YYYY-MM-DD). <br>
-            </p>
-            <div class="input-wrapper">
-                <!-- <input type="text" class="form-control" ng-model="stockCode1" placeholder="Stock Code 1">
-                <input type="text" class="form-control" ng-model="stockCode2" placeholder="Stock Code 2"> -->
-                <input type="text" class="form-control input-date" ng-model="startDate" placeholder="From (YYYY-MM-DD)">
-                <input type="text" class="form-control input-date" ng-model="endDate" placeholder="To (YYYY-MM-DD)">
-                <div class="radio-wrapper">
-                    <div class="radio radio-primary" ng-repeat="rule in calculationRules">
-                        <label>
-                            <input type="radio" name="pairingRule" ng-model="$parent.pairingRule" ng-value="rule.funcName">
-                            {{ rule.name }}
-                        </label>
-                    </div>
-                </div>
-                <!-- <button class="btn btn-material-pink-500"
-                        ng-disabled="!stockCode1 || !stockCode2 || !startDate || !endDate || !pairingRule"
-                        ng-click="findPair()">
-                    Run
-                </button> -->
-                <select class="form-control"
-                        ng-class="{placeholder: !stockCategory.stocks}"
-                        ng-model="stockCategory"
-                        ng-options="category as category.name for category in stockCategories" ></select>
-                <textarea class="form-control" ng-model="stockList"></textarea>
-                <button class="btn btn-material-pink-500"
-                        ng-disabled="!startDate || !endDate || !pairingRule || !stockList"
-                        ng-click="crawl()">
-                    Crawl
-                </button>
-            </div>
+  <section class="config-section">
+    <a class="config" ng-click="showConfig()" ng-hide="configOn">Setting</a>
+    <div class="config-input-group" ng-show="configOn">
+        <span>Transaction Cost</span>
+        <input class="form-control input-transaction-cost"
+               placeholder="(%)"
+               ng-model="_transactionCost"
+               ng-focus="stopHideConfig()"
+               ng-blur="startHideConfig()">
+    </div>
+  </section>
+  <section class="input-yql-section text-center">
+    <div class="container">
+      <h3>2015-16 SEEM4998PJ01 <br>Final Year Project</h3>
+      <p class="text-muted text-center">
+        Please strictly follow the ISO date format (YYYY-MM-DD). <br>
+      </p>
+      <div class="input-wrapper">
+        <!-- <input type="text" class="form-control" ng-model="stockCode1" placeholder="Stock Code 1">
+        <input type="text" class="form-control" ng-model="stockCode2" placeholder="Stock Code 2"> -->
+        <input type="text" class="form-control input-date" ng-model="startDate" placeholder="From (YYYY-MM-DD)">
+        <input type="text" class="form-control input-date" ng-model="endDate" placeholder="To (YYYY-MM-DD)">
+        <div class="radio-wrapper">
+          <div class="radio radio-primary" ng-repeat="rule in calculationRules">
+            <label>
+              <input type="radio" name="pairingRule" ng-model="$parent.pairingRule" ng-value="rule.funcName">
+              {{ rule.name }}
+            </label>
+          </div>
         </div>
-    </section>
+        <!-- <button class="btn btn-material-pink-500"
+            ng-disabled="!stockCode1 || !stockCode2 || !startDate || !endDate || !pairingRule"
+            ng-click="findPair()">
+          Run
+        </button> -->
+        <select class="form-control"
+            ng-class="{placeholder: !stockCategory.stocks}"
+            ng-model="stockCategory"
+            ng-options="category as category.name for category in stockCategories" ></select>
+        <textarea class="form-control" ng-model="stockList"></textarea>
+        <button class="btn btn-material-pink-500"
+            ng-disabled="!startDate || !endDate || !pairingRule || !stockList"
+            ng-click="crawl()">
+          Crawl
+        </button>
+      </div>
+    </div>
+  </section>
 
-    <section class="quote-data-table">
-        <div class="container">
-            <p class="text-warning text-center" ng-show="message" ng-bind="message"></p>
-            <div class="input-wrapper text-center" ng-show="scores.length">
-                <button class="btn btn-material-orange-600" ng-click="getStrategySummary()">
-                    Strategy Summary
-                </button>
+  <section class="quote-data-table">
+    <div class="container">
+      <p class="text-warning text-center" ng-show="message" ng-bind="message"></p>
+      <div class="input-wrapper text-center" ng-show="scores.length">
+        <button class="btn btn-strategy-summary"
+                ng-class="isAnyRowDataSelected()? 'btn-material-light-blue-500' : 'btn-material-orange-600'"
+                ng-click="isAnyRowDataSelected()? getStrategyResults() : getStrategySummary()"
+                ng-bind="isAnyRowDataSelected()? 'Strategy Results' : 'Strategy Summary'">
+        </button>
+      </div>
+      <table class="table table-striped table-hover" ng-show="scores.length">
+        <thead>
+          <tr>
+            <th style="width: 6%">
+              <input type="checkbox"
+                     class="row-checkbox"
+                     ng-click="selectAllRowData($event)"
+                     ng-checked="isAllRowDataSelected()">
+            </th>
+            <th style="width: 10%">Rank</th>
+            <th style="width: 22%">Stock 1</th>
+            <th style="width: 22%">Stock 2</th>
+            <th style="width: 28%">Score</th>
+            <th style="width: 12%">Day Counts</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr ng-repeat="score in scores | orderBy:'score'" ng-click="clickRowData(score)" style="cursor: pointer;">
+            <td>
+              <input type="checkbox"
+                     class="row-checkbox"
+                     name="selectedRowData"
+                     ng-model="score._selected"
+                     ng-click="$event.stopPropagation();">
+            </td>
+            <td ng-bind="$index + 1"></td>
+            <td ng-bind="score.stock1"></td>
+            <td ng-bind="score.stock2"></td>
+            <td ng-bind="score.score"></td>
+            <td ng-bind="score.dayCounts"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="modal fade strategy-summary-modal">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <section class="strategy-summary-profits"
+             ng-show="strategySummary.strategyProfits.length">
+          <div class="input-wrapper text-center">
+            <input type="text" class="form-control input-date text-center" ng-model="targetStartDate" placeholder="From (YYYY-MM-DD)">
+            <input type="text" class="form-control input-date text-center" ng-model="targetEndDate" placeholder="To (YYYY-MM-DD)">
+            <button class="btn btn-material-pink-500"
+                    ng-disabled="!targetStartDate || !targetEndDate"
+                    ng-click="getStrategySummary()">
+              Get Strategy
+            </button>
+          </div>
+          <p class="text-muted text-right">
+            Profit excludes Transaction Cost and Trades are force-closed in the end.<br>
+            Max. and Min. Profit are taken within the top 10 pairs.<br>
+            Stocks that are inactive for more than 2 years are neglected.
+          </p>
+          <table class="table table-striped table-hover">
+            <caption>
+              <h3 ng-bind="stockCategory.name"></h3>
+            </caption>
+            <thead>
+              <tr>
+                <th style="">Strategy</th>
+                <th style="">Top 3 Pairs Total Profit</th>
+                <th style="">Top 10 Pairs Total Profit</th>
+                <th style="">Top 3 Pairs Average Profit</th>
+                <th style="">Top 10 Pairs Average Profit</th>
+                <th style="">Max. Profit</th>
+                <th style="">Min. Profit</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="result in strategySummary.strategyProfits">
+                <td class="col-strategy-name" ng-bind="result.strategy.name"></td>
+                <td ng-bind="result.totalTop3Profit | percentage: 2"></td>
+                <td ng-bind="result.totalTop10Profit | percentage: 2"></td>
+                <td ng-bind="(result.totalTop3Profit / 3) | percentage: 2"></td>
+                <td ng-bind="(result.totalTop10Profit / 10) | percentage: 2"></td>
+                <td ng-bind="result.maxProfit | percentage: 2"></td>
+                <td ng-bind="result.minProfit | percentage: 2"></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+    </div>
+  </section>
+
+
+  <section class="modal fade strategy-result-history-modal">
+    <div class="modal-dialog modal-lg" role="document" style="max-width: initial;">
+      <div class="modal-content">
+        <p class="text-muted text-right">
+          Profits are deducted Transaction Cost and Trades are force-closed in the end.<br>
+        </p>
+        <div class="table-x-scroller-wrapper">
+          <table class="table table-striped table-hover">
+            <caption>
+              <h3>Pairs' Historic Strategy Results</h3>
+            </caption>
+            <thead>
+              <tr>
+                <th style="" rowspan="2">Stock 1</th>
+                <th style="" rowspan="2">Stock 2</th>
+                <th style="" rowspan="2">Score</th>
+                <th style="border: none;" ng-repeat="strategy in strategyList" ng-bind="strategy.id" colspan="2"></th>
+              </tr>
+              <tr>
+                <th style="" ng-repeat-start="strategy in strategyList">Open Count</th>
+                <th style="" ng-repeat-end>Profit</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="pair in strategyHistoricResults"
+                  ng-click="clickRowData(pair)"
+                  style="cursor: pointer;">
+                <td ng-bind="pair.stock1"></td>
+                <td ng-bind="pair.stock2"></td>
+                <td ng-bind="pair.score | number: 4"></td>
+                <td ng-repeat-start="result in pair.strategyResult" ng-bind="result.result.openCounts"></td>
+                <td ng-repeat-end ng-bind="result.result.forceClosedProfit | percentage: 2"></td>
+
+                <!-- <td ng-bind="(result.totalTop3Profit / 3) | percentage: 2"></td>
+                <td ng-bind="(result.totalTop10Profit / 10) | percentage: 2"></td>
+                <td ng-bind="result.maxProfit | percentage: 2"></td>
+                <td ng-bind="result.minProfit | percentage: 2"></td> -->
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <section class="modal fade pair-detail-modal">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <ul class="nav nav-tabs pink-tab-header">
+          <li class="active">
+            <a href="#graphs" data-toggle="tab">Graphs</a>
+          </li>
+          <li>
+            <a href="#strategy" data-toggle="tab">Strategy</a>
+          </li>
+          <li style="float: right;">
+            <a>
+              <span ng-bind="pair.stock1"></span> -
+              <span ng-bind="pair.stock2"></span>
+            </a>
+          </li>
+        </ul>
+        <div class="tab-content">
+          <div class="tab-pane active" id="graphs">
+            <div class="graph-wrapper">
+              <div class="graph graph-1"></div>
+              <div class="graph graph-2"></div>
+              <div class="graph graph-3"></div>
             </div>
-            <table class="table table-striped table-hover" ng-show="scores.length">
+          </div>
+          <div class="tab-pane" id="strategy">
+            <section class="input-yql-section text-center">
+              <div class="input-wrapper">
+                <input type="text" class="form-control input-date" ng-model="targetStartDate" placeholder="From (YYYY-MM-DD)">
+                <input type="text" class="form-control input-date" ng-model="targetEndDate" placeholder="To (YYYY-MM-DD)">
+                <button class="btn btn-material-pink-500"
+                    ng-disabled="!targetStartDate || !targetEndDate"
+                    ng-click="doAllStrategy()">
+                  Do All Strategy
+                </button>
+              </div>
+            </section>
+            <section class="strategy-result" ng-show="strategiesResults.length">
+              <div class="graph-wrapper">
+                <div class="graph targetGraph"></div>
+              </div>
+              <table class="table table-striped table-hover" ng-show="strategyResult">
                 <thead>
-                    <tr>
-                        <th style="width: 10%">Rank</th>
-                        <th style="width: 25%">Stock 1</th>
-                        <th style="width: 25%">Stock 2</th>
-                        <th style="width: 28%">Score</th>
-                        <th style="width: 12%">Day Counts</th>
-                    </tr>
+                  <tr>
+                    <th style="">Date</th>
+                    <th style="">Action</th>
+                    <th style="" ng-bind="pair.stock1"></th>
+                    <th style="" ng-bind="pair.stock2"></th>
+                    <th style="">Profit</th>
+                    <th style="">Transaction Cost</th>
+                  </tr>
                 </thead>
                 <tbody>
-                    <tr ng-repeat="score in scores | orderBy:'score'" ng-click="clickRowData(score)" style="cursor: pointer;">
-                        <td ng-bind="$index + 1"></td>
-                        <td ng-bind="score.stock1"></td>
-                        <td ng-bind="score.stock2"></td>
-                        <td ng-bind="score.score"></td>
-                        <td ng-bind="score.dayCounts"></td>
-                    </tr>
+                  <tr ng-repeat="action in strategyResult.result.actions">
+                    <td ng-bind="action.date"></td>
+                    <td ng-bind="action.type"></td>
+                    <td ng-bind="action.stock1Price + (action.type !== 'OPEN' ? '' : (' (' + action.stock1Action + ')'))"></td>
+                    <td ng-bind="action.stock2Price + (action.type !== 'OPEN' ? '' : (' (' + action.stock2Action + ')'))"></td>
+                    <td ng-bind="action.type == 'OPEN'? '-' : ((action.forceClosedProfit || action.profit) | percentage: 2)"></td>
+                    <td ng-bind="action.transactionCost || action.forceClosedTransactionCost | percentage: 2"></td>
+                  </tr>
                 </tbody>
-            </table>
+              </table>
+              <hr style="border-color: #c2c2c2;">
+              <table class="table table-striped table-hover">
+                <thead>
+                  <tr>
+                    <th style="cursor: pointer;"
+                      ng-click="sortStrategiesResultsBy('STRATEGY')">
+                      Strategy
+                    </th>
+                    <th style="">Description</th>
+                    <!-- <th style="width: 20%; cursor: pointer;"
+                      ng-click="sortStrategiesResultsBy('PROFIT')">
+                      Profit
+                    </th> -->
+                    <th style="width: 20%; cursor: pointer;"
+                      ng-click="sortStrategiesResultsBy('FORCE_CLOSED_PROFIT')">
+                      Profit (Force Closed)
+                    </th>
+                    <!-- <th style="width: 20%; cursor: pointer;"
+                      ng-click="sortStrategiesResultsBy('PROFIT_MINUS_TRANSACTION_COST')">
+                      Profit (deducting Transaction Cost)
+                    </th> -->
+                    <th style="width: 20%; cursor: pointer;"
+                      ng-click="sortStrategiesResultsBy('FORCE_CLOSED_PROFIT_MINUS_TRANSACTION_COST')">
+                      Profit (Force Close and deducting Transaction Cost)
+                    </th>
+                    <!-- <th style="width: 10%">Open at</th> -->
+                    <!-- <th style="width: 10%">Close at</th> -->
+                    <th style="width: 10%">Open Counts</th>
+                    <th style="width: 10%">Holding Days</th>
+                    <th style="width: 10%">Is Holding</th>
+                    <!-- <th style="width: 10%">Profit / Holding Day</th> -->
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="result in strategiesResults"
+                    ng-click="clickStrategyRow(result)"
+                    style="cursor: pointer;">
+                    <td class="col-strategy-id" ng-bind="result.strategy.id"></td>
+                    <td class="col-strategy-name" ng-bind="result.strategy.name"></td>
+                    <!-- <td ng-bind="result.result.profit | percentage: 2"></td> -->
+                    <td ng-bind="result.result.forceClosedProfit | percentage: 2"></td>
+                    <!-- <td>{{ (result.result.profit - result.result.transactionCost)  | percentage: 2 }}</td> -->
+                    <td ng-bind="(result.result.forceClosedProfit - result.result.forceClosedTransactionCost) | percentage: 2"></td>
+                    <!-- <td>
+                      <span ng-bind="result.result.openAbsBounds[0]| number:3"></span>,
+                      <span ng-bind="result.result.openAbsBounds[1]| number:3"></span>
+                    </td>
+                    <td>
+                      <span ng-bind="result.result.closeAbsBounds[0]| number:3"></span>,
+                      <span ng-bind="result.result.closeAbsBounds[1]| number:3"></span>
+                    </td> -->
+                    <td ng-bind="result.result.openCounts"></td>
+                    <td ng-bind="result.result.holdingDuration"></td>
+                    <td ng-bind="result.result.isHolding"></td>
+                    <!-- <td ng-bind="result.result.profitPerHoldingDay|number:5"></td> -->
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+          </div>
         </div>
-    </section>
-
-    <section class="modal fade strategy-summary-modal">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <section class="strategy-summary-profits"
-                         ng-show="strategySummary.strategyProfits.length">
-                    <div class="input-wrapper text-center">
-                        <input type="text" class="form-control input-date text-center" ng-model="targetStartDate" placeholder="From (YYYY-MM-DD)">
-                        <input type="text" class="form-control input-date text-center" ng-model="targetEndDate" placeholder="To (YYYY-MM-DD)">
-                        <button class="btn btn-material-pink-500"
-                                ng-disabled="!targetStartDate || !targetEndDate"
-                                ng-click="getStrategySummary()">
-                            Get Strategy
-                        </button>
-                    </div>
-                    <p class="text-muted text-right">
-                        Profit excludes Transaction Cost and Trades are force-closed in the end.<br>
-                        Max. and Min. Profit are taken within the top 10 pairs.<br>
-                        Stocks that are inactive for more than 2 years are neglected.
-                    </p>
-                    <table class="table table-striped table-hover">
-                        <caption>
-                            <h3 ng-bind="stockCategory.name"></h3>
-                        </caption>
-                        <thead>
-                            <tr>
-                                <th style="">Strategy</th>
-                                <th style="">Top 3 Pairs Total Profit</th>
-                                <th style="">Top 10 Pairs Total Profit</th>
-                                <th style="">Top 3 Pairs Average Profit</th>
-                                <th style="">Top 10 Pairs Average Profit</th>
-                                <th style="">Max. Profit</th>
-                                <th style="">Min. Profit</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr ng-repeat="result in strategySummary.strategyProfits">
-                                <td class="col-strategy-name" ng-bind="result.strategy.name"></td>
-                                <td ng-bind="result.totalTop3Profit | number:4"></td>
-                                <td ng-bind="result.totalTop10Profit | number:4"></td>
-                                <td>{{ (result.totalTop3Profit / 3) | number:4 }}</td>
-                                <td>{{ (result.totalTop10Profit / 10) | number:4 }}</td>
-                                <td ng-bind="result.maxProfit | number:4"></td>
-                                <td ng-bind="result.minProfit | number:4"></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </section>
-            </div>
-        </div>
-    </section>
-
-    <section class="modal fade pair-detail-modal">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <ul class="nav nav-tabs pink-tab-header">
-                    <li class="active">
-                        <a href="#graphs" data-toggle="tab">Graphs</a>
-                    </li>
-                    <li>
-                        <a href="#strategy" data-toggle="tab">Strategy</a>
-                    </li>
-                    <li style="float: right;">
-                        <a>
-                            <span ng-bind="pair.stock1"></span> -
-                            <span ng-bind="pair.stock2"></span>
-                        </a>
-                    </li>
-                </ul>
-                <div class="tab-content">
-                    <div class="tab-pane active" id="graphs">
-                        <div class="graph-wrapper">
-                            <div class="graph graph-1"></div>
-                            <div class="graph graph-2"></div>
-                            <div class="graph graph-3"></div>
-                        </div>
-                    </div>
-                    <div class="tab-pane" id="strategy">
-                        <section class="input-yql-section text-center">
-                            <div class="input-wrapper">
-                                <input type="text" class="form-control input-date" ng-model="targetStartDate" placeholder="From (YYYY-MM-DD)">
-                                <input type="text" class="form-control input-date" ng-model="targetEndDate" placeholder="To (YYYY-MM-DD)">
-                                <button class="btn btn-material-pink-500"
-                                        ng-disabled="!targetStartDate || !targetEndDate"
-                                        ng-click="doAllStrategy()">
-                                    Do All Strategy
-                                </button>
-                            </div>
-                        </section>
-                        <section class="strategy-result" ng-show="strategiesResults.length">
-                            <div class="graph-wrapper">
-                                <div class="graph targetGraph"></div>
-                            </div>
-                            <table class="table table-striped table-hover" ng-show="strategyResult">
-                                <thead>
-                                    <tr>
-                                        <th style="">Date</th>
-                                        <th style="">Action</th>
-                                        <th style="" ng-bind="pair.stock1"></th>
-                                        <th style="" ng-bind="pair.stock2"></th>
-                                        <th style="">Profit</th>
-                                        <th style="">Transaction Cost</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr ng-repeat="action in strategyResult.result.actions">
-                                        <td ng-bind="action.date"></td>
-                                        <td ng-bind="action.type"></td>
-                                        <td ng-bind="action.stock1Price + (action.type !== 'OPEN' ? '' : (' (' + action.stock1Action + ')'))"></td>
-                                        <td ng-bind="action.stock2Price + (action.type !== 'OPEN' ? '' : (' (' + action.stock2Action + ')'))"></td>
-                                        <td>{{ action.type == 'OPEN'? '-' : (action.forceClosedProfit || action.profit).toFixed(4) }}
-                                        <td>{{ action.transactionCost || action.forceClosedTransactionCost | number:4 }}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            <hr style="border-color: #c2c2c2;">
-                            <table class="table table-striped table-hover">
-                                <thead>
-                                    <tr>
-                                        <th style="cursor: pointer;"
-                                            ng-click="sortStrategiesResultsBy('STRATEGY')">
-                                            Strategy
-                                        </th>
-                                        <th style="">Description</th>
-                                        <!-- <th style="width: 12.5%">Profit</th> -->
-                                        <th style="width: 20%; cursor: pointer;"
-                                            ng-click="sortStrategiesResultsBy('PROFIT_MINUS_TRANSACTION_COST')">
-                                            Profit (deducting Transaction Cost)
-                                        </th>
-                                        <th style="width: 20%; cursor: pointer;"
-                                            ng-click="sortStrategiesResultsBy('FORCE_CLOSED_PROFIT_MINUS_TRANSACTION_COST')">
-                                            Profit (Force Close and deducting Transaction Cost)
-                                        </th>
-                                        <!-- <th style="width: 10%">Open at</th> -->
-                                        <!-- <th style="width: 10%">Close at</th> -->
-                                        <th style="width: 10%">Open Counts</th>
-                                        <th style="width: 10%">Holding Days</th>
-                                        <th style="width: 10%">Is Holding</th>
-                                        <!-- <th style="width: 10%">Profit / Holding Day</th> -->
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr ng-repeat="result in strategiesResults"
-                                        ng-click="clickStrategyRow(result)"
-                                        style="cursor: pointer;">
-                                        <td class="col-strategy-id" ng-bind="result.strategy.id"></td>
-                                        <td class="col-strategy-name" ng-bind="result.strategy.name"></td>
-                                        <!-- <td ng-bind="result.result.profit | number:4"></td> -->
-                                        <td>{{ (result.result.profit - result.result.transactionCost)  | number:4 }}</td>
-                                        <td>{{ (result.result.forceClosedProfit - result.result.forceClosedTransactionCost)  | number:4 }}</td>
-                                        <!-- <td>
-                                            <span ng-bind="result.result.openAbsBounds[0]| number:3"></span>,
-                                            <span ng-bind="result.result.openAbsBounds[1]| number:3"></span>
-                                        </td>
-                                        <td>
-                                            <span ng-bind="result.result.closeAbsBounds[0]| number:3"></span>,
-                                            <span ng-bind="result.result.closeAbsBounds[1]| number:3"></span>
-                                        </td> -->
-                                        <td ng-bind="result.result.openCounts"></td>
-                                        <td ng-bind="result.result.holdingDuration"></td>
-                                        <td ng-bind="result.result.isHolding"></td>
-                                        <!-- <td ng-bind="result.result.profitPerHoldingDay|number:5"></td> -->
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </section>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+      </div>
+    </div>
+  </section>
 
 </main>
 <script>

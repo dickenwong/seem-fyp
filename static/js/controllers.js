@@ -5,8 +5,8 @@ var dataMiningControllers = angular.module('dataMiningControllers', []);
 dataMiningControllers.controller('DataMiningCtrl', ['$scope', 'YQLHelper',
     function ($scope, YQLHelper) {
         $scope.inputStockCode = '0001.HK';
-        $scope.inputStartDate = '2008-10-01';
-        $scope.inputEndDate = '2013-10-01';
+        $scope.inputStartDate = '2013-01-01';
+        $scope.inputEndDate = '2015-12-31';
         $scope.inputYQL = '';
         $scope.dataResults = [];
 
@@ -47,10 +47,10 @@ dataMiningControllers.controller('DataMiningCtrl', ['$scope', 'YQLHelper',
 dataMiningControllers.controller('PairFinderCtrl',
     ['$scope', 'YQLHelper', 'PairCalculator', '$q', 'PairCrawler', 'StockCategories',
      '$window', 'google', 'StrategyProcessor', 'StatHelper', 'DatasetPreparator',
-     'StrategyList', '$filter',
+     'StrategyList', '$filter', '$timeout',
     function ($scope, YQLHelper, PairCalculator, $q, PairCrawler, StockCategories,
               $window, google, StrategyProcessor, StatHelper, DatasetPreparator,
-              StrategyList, $filter) {
+              StrategyList, $filter, $timeout) {
 
         $scope.calculationRules = Object.keys(PairCalculator).filter(function(funcName){
             return funcName.indexOf('_') != 0;
@@ -63,8 +63,8 @@ dataMiningControllers.controller('PairFinderCtrl',
             if (newValue) $scope.stockList = newValue.stocks;
         });
 
-        $scope.startDate = '2008-10-01';
-        $scope.endDate = '2013-10-01';
+        $scope.startDate = '2011-01-01';
+        $scope.endDate = '2013-12-31';
         $scope.stockCategory = $scope.stockCategories[0];
 
         var _getDataPromise = function(stockCode, startDate, endDate) {
@@ -85,31 +85,31 @@ dataMiningControllers.controller('PairFinderCtrl',
             return $q.all(promises);
         };
 
-        $scope.findPair = function() {
-            if (!$scope.stockCode1 || !$scope.stockCode2 || !$scope.startDate ||
-                !$scope.endDate || !$scope.pairingRule) {
-                return;
-            }
-            $scope.message = 'Calculating...';
-            YQLHelper.cancelAll();
-            var promise1 = _getDataPromise(
-                $scope.stockCode1,
-                $scope.startDate,
-                $scope.endDate
-            );
-            var promise2 = _getDataPromise(
-                $scope.stockCode2,
-                $scope.startDate,
-                $scope.endDate
-            );
-            $q.all([promise1, promise2]).then(function(responses) {
-                var score = PairCalculator.byLeastSquare(
-                    responses[0].data.results,
-                    responses[1].data.results
-                );
-            });
-
-        };
+        // Deprecated
+        // $scope.findPair = function() {
+        //     if (!$scope.stockCode1 || !$scope.stockCode2 || !$scope.startDate ||
+        //         !$scope.endDate || !$scope.pairingRule) {
+        //         return;
+        //     }
+        //     $scope.message = 'Calculating...';
+        //     YQLHelper.cancelAll();
+        //     var promise1 = _getDataPromise(
+        //         $scope.stockCode1,
+        //         $scope.startDate,
+        //         $scope.endDate
+        //     );
+        //     var promise2 = _getDataPromise(
+        //         $scope.stockCode2,
+        //         $scope.startDate,
+        //         $scope.endDate
+        //     );
+        //     $q.all([promise1, promise2]).then(function(responses) {
+        //         var score = PairCalculator.byLeastSquare(
+        //             responses[0].data.results,
+        //             responses[1].data.results
+        //         );
+        //     });
+        // };
 
         var _cachedScoresList = [];
         $window._cachedScoresList = _cachedScoresList;
@@ -205,10 +205,14 @@ dataMiningControllers.controller('PairFinderCtrl',
             $scope.pair = score;
             $scope.drawScoreGraph(score.dataset, '.graph-1', function() {
                 $scope.drawValuesGraph(score, '.graph-2', function() {
-                    $scope.pair.dataset = DatasetPreparator.makeRelativePriceRatio(
-                        $scope.pair.dataset
+                    var rule = PairCalculator[$scope.pairingRule];
+                    rule.strategy.prepare(score.dataset);
+                    $scope.drawGraphWithStd(
+                        score.dataset,
+                        rule.strategy.dependentVariableName,
+                        null,
+                        '.graph-3'
                     );
-                    $scope.drawGraphWithStd(score.dataset, 'priceRatio', null, '.graph-3');
                 });
             });
             $scope.strategiesResults = null;
@@ -309,7 +313,10 @@ dataMiningControllers.controller('PairFinderCtrl',
         }
 
         $scope.drawGraphWithStd = function(dataset, variableName, option, targetDiv, callback, stdList) {
-            if (variableName == null) variableName = 'priceRatio';
+            if (variableName == null) {
+                var rule = PairCalculator[$scope.pairingRule];
+                variableName = rule.strategy.dependentVariableName;
+            }
             if (option == null) option = {};
             var mean = option.mean || StatHelper.mean(dataset, variableName);
             var std = option.std || StatHelper.std(dataset, variableName);
@@ -337,6 +344,7 @@ dataMiningControllers.controller('PairFinderCtrl',
         $scope.drawStrategyGraph = function(historicDataset, targetDataset, variableName, stdList, option, targetDiv, callback) {
             var mean = StatHelper.mean(historicDataset, variableName);
             var std = StatHelper.std(historicDataset, variableName);
+            console.log('drawStrategyGraph', std, mean);
             return $scope.drawGraphWithStd(
                 targetDataset,
                 variableName,
@@ -356,8 +364,9 @@ dataMiningControllers.controller('PairFinderCtrl',
                 var stockData1 = responses[0].data.results;
                 var stockData2 = responses[1].data.results;
                 var targetDataset =  DatasetPreparator.makeSimpleDataset(stockData1, stockData2);
-                targetDataset = DatasetPreparator.makeRelativePriceRatio(targetDataset);
-                historicDataset = DatasetPreparator.makeRelativePriceRatio(historicDataset);
+                var rule = PairCalculator[$scope.pairingRule];
+                var historicResult = rule.strategy.prepare(historicDataset);
+                rule.strategy.prepare(targetDataset, historicResult.regression);
                 return {
                     stockData1: stockData1,
                     stockData2: stockData2,
@@ -367,8 +376,8 @@ dataMiningControllers.controller('PairFinderCtrl',
             });
         };
 
-        $scope.targetStartDate = '2013-10-01';
-        $scope.targetEndDate = '2015-10-01';
+        $scope.targetStartDate = '2014-01-01';
+        $scope.targetEndDate = '2014-12-31';
         $scope.doAllStrategy = function() {
             if (!$scope.targetStartDate || !$scope.targetEndDate ||
                 $scope.pairDataset) {
@@ -381,19 +390,21 @@ dataMiningControllers.controller('PairFinderCtrl',
                 $scope.targetEndDate,
                 $scope.pair.dataset
             ).then(function (params) {
+                var rule = PairCalculator[$scope.pairingRule];
                 $scope.strategiesResults = StrategyProcessor.doAllStrategies(
                     params.historicDataset,
-                    params.targetDataset
+                    params.targetDataset,
+                    rule.strategy.dependentVariableName,
+                    {transactionCost: $scope.transactionCost}
                 );
                 $scope.strategyGraph = $scope.drawStrategyGraph(
                     params.historicDataset,
                     params.targetDataset,
-                    'priceRatio',
+                    rule.strategy.dependentVariableName,
                     [2, 1, 0, -1, -2],
                     null,
                     '.targetGraph'
                 );
-                console.log($scope.strategiesResults);
             });
         };
 
@@ -402,19 +413,22 @@ dataMiningControllers.controller('PairFinderCtrl',
             var strategyTests = [];
             pairPool.forEach(function(pair, i) {
                 if (i >= numOfPair) return false;
-               var promise = _prepareStrategyDataset(
+                var promise = _prepareStrategyDataset(
                     pair.stock1,
                     pair.stock2,
                     targetStartDate,
                     targetEndDate,
                     pair.dataset
                 ).then(function (params) {
+                    var rule = PairCalculator[$scope.pairingRule];
                     strategyTests.push({
                         top: i,
                         pair: pair,
                         results: StrategyProcessor.doAllStrategies(
                             params.historicDataset,
-                            params.targetDataset
+                            params.targetDataset,
+                            rule.strategy.dependentVariableName,
+                            {transactionCost: $scope.transactionCost}
                         )
                     });
                 });
@@ -457,19 +471,14 @@ dataMiningControllers.controller('PairFinderCtrl',
         $scope.getStrategySummary = function() {
             angular.element('.strategy-summary-modal').modal('show');
             $scope.strategySummary = {};
-            var start = new Date($scope.targetStartDate);
-            var end = new Date($scope.targetEndDate);
-            var dayRange = (end - start) / 1000 / 60 / 60 / 24;
             _doStrategiesOnTopPairs(
                 $scope.scores,
                 10,
                 $scope.targetStartDate,
                 $scope.targetEndDate
             ).then(function(strategyTests) {
-                console.log(strategyTests);
                 $scope.strategySummary.strategyProfits = _getStrategyProfits(strategyTests);
-
-                // -- Getting Score Profit table Datat --
+                // -- Getting Score Profit table Data --
                 // var _data = [];
                 // strategyTests.forEach(function(pair) {
                 //     var rowData = [];
@@ -503,10 +512,11 @@ dataMiningControllers.controller('PairFinderCtrl',
                     style: 'point {shape-type: circle; fill-color: ' + color + ';}'
                 };
             });
+            var rule = PairCalculator[$scope.pairingRule];
             $scope.strategyGraph = $scope.drawStrategyGraph(
                 strategyResult.historicDataset,
                 strategyResult.targetDataset,
-                'priceRatio',
+                rule.strategy.dependentVariableName,
                 stdList,
                 {points: points},
                 '.targetGraph'
@@ -531,6 +541,16 @@ dataMiningControllers.controller('PairFinderCtrl',
                         return StrategyList.indexOf(result.strategy);
                     };
                     break;
+                case "PROFIT":
+                    orderExpression = function(result) {
+                        return -result.result.profit;
+                    };
+                    break;
+                case "FORCE_CLOSED_PROFIT":
+                    orderExpression = function(result) {
+                        return -result.result.forceClosedProfit;
+                    };
+                    break;
                 case "PROFIT_MINUS_TRANSACTION_COST":
                     orderExpression = function(result) {
                         return -(result.result.profit - result.result.transactionCost);
@@ -548,6 +568,95 @@ dataMiningControllers.controller('PairFinderCtrl',
                 orderExpression
             );
         };
+
+        $scope.transactionCost = 0.01;
+        $scope._transactionCost = '1%';
+
+
+        $scope.showConfig = function() {
+            $scope.configOn = true;
+        };
+
+        $scope.startHideConfig = function() {
+            $scope.stopHideConfig();
+            $scope._hideConfigTimeout = $timeout(function() {
+                $scope.configOn = false;
+            }, 5000);
+        };
+
+        $scope.stopHideConfig = function() {
+            if ($scope._hideConfigTimeout && $scope._hideConfigTimeout.cancel) {
+                $scope._hideConfigTimeout.cancel();
+            }
+        };
+
+        $scope.$watch('_transactionCost', function(newVal, oldVal) {
+            if (!newVal) return;
+            var transactionCost = Number(newVal.replace(/[^0-9]/g, '')) / 100;
+            if (isNaN(transactionCost)) return;
+            $scope.transactionCost = transactionCost;
+        });
+
+        /*=============================================
+        =             Row data selection              =
+        =============================================*/
+
+        $scope.selectAllRowData = function($event) {
+            var checkbox = $event.target;
+            $scope.scores.forEach(function(row) {
+                row._selected = checkbox.checked;
+            });
+        };
+
+        $scope.isAllRowDataSelected = function() {
+            if (!$scope.scores) return false;
+            for (var i = 0; i < $scope.scores.length; i++) {
+                if (!$scope.scores[i]._selected) return false;
+            }
+            return true;
+        };
+
+        $scope.isAnyRowDataSelected = function() {
+            if (!$scope.scores) return false;
+            for (var i = 0; i < $scope.scores.length; i++) {
+                if ($scope.scores[i]._selected) return true;
+            }
+            return false;
+        };
+
+        $scope.strategyList = StrategyList;
+
+        $scope.getStrategyResults = function() {
+            angular.element('.strategy-result-history-modal').modal('show');
+            var selectedRows = $scope.scores.filter(function(row) {
+                return row._selected;
+            });
+            var promises = selectedRows.map(function(row) {
+                var promise = _prepareStrategyDataset(
+                    row.stock1,
+                    row.stock2,
+                    $scope.targetStartDate,
+                    $scope.targetEndDate,
+                    row.dataset
+                ).then(function (params) {
+                    var rule = PairCalculator[$scope.pairingRule];
+                    row.strategyResult = StrategyProcessor.doAllStrategies(
+                        params.historicDataset,
+                        params.targetDataset,
+                        rule.strategy.dependentVariableName,
+                        {transactionCost: $scope.transactionCost}
+                    );
+                    return row;
+                });
+                return promise;
+            });
+            return $q.all(promises).then(function(strategyResults) {
+                $scope.strategyHistoricResults = strategyResults;
+                return strategyResults;
+            });
+        };
+
+        /*=======  End of Row data selection  =======*/
 
     }]
 )
