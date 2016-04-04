@@ -264,6 +264,7 @@
             </section>
             <section class="strategy-result" ng-show="strategiesResults.length">
               <div class="graph-wrapper">
+                <div class="graph target-values-graph"></div>
                 <div class="graph targetGraph"></div>
               </div>
               <table class="table table-striped table-hover" ng-show="strategyResult">
@@ -281,8 +282,8 @@
                   <tr ng-repeat="action in strategyResult.result.actions">
                     <td ng-bind="action.date"></td>
                     <td ng-bind="action.type"></td>
-                    <td ng-bind="action.stock1Price + (action.type !== 'OPEN' ? '' : (' (' + action.stock1Action + ')'))"></td>
-                    <td ng-bind="action.stock2Price + (action.type !== 'OPEN' ? '' : (' (' + action.stock2Action + ')'))"></td>
+                    <td ng-bind="action | strategyStockAction: 1"></td>
+                    <td ng-bind="action | strategyStockAction: 2"></td>
                     <td ng-bind="action.type == 'OPEN'? '-' : ((action.forceClosedProfit || action.profit) | percentage: 2)"></td>
                     <td ng-bind="action.transactionCost || action.forceClosedTransactionCost | percentage: 2"></td>
                   </tr>
@@ -301,14 +302,14 @@
                       ng-click="sortStrategiesResultsBy('PROFIT')">
                       Profit
                     </th> -->
-                    <th style="width: 20%; cursor: pointer;"
+                    <!-- <th style="width: 20%; cursor: pointer;"
                       ng-click="sortStrategiesResultsBy('FORCE_CLOSED_PROFIT')">
                       Profit (Force Closed)
-                    </th>
-                    <!-- <th style="width: 20%; cursor: pointer;"
+                    </th> -->
+                    <th style="width: 20%; cursor: pointer;"
                       ng-click="sortStrategiesResultsBy('PROFIT_MINUS_TRANSACTION_COST')">
                       Profit (deducting Transaction Cost)
-                    </th> -->
+                    </th>
                     <th style="width: 20%; cursor: pointer;"
                       ng-click="sortStrategiesResultsBy('FORCE_CLOSED_PROFIT_MINUS_TRANSACTION_COST')">
                       Profit (Force Close and deducting Transaction Cost)
@@ -328,8 +329,8 @@
                     <td class="col-strategy-id" ng-bind="result.strategy.id"></td>
                     <td class="col-strategy-name" ng-bind="result.strategy.name"></td>
                     <!-- <td ng-bind="result.result.profit | percentage: 2"></td> -->
-                    <td ng-bind="result.result.forceClosedProfit | percentage: 2"></td>
-                    <!-- <td>{{ (result.result.profit - result.result.transactionCost)  | percentage: 2 }}</td> -->
+                    <!-- <td ng-bind="result.result.forceClosedProfit | percentage: 2"></td> -->
+                    <td ng-bind="(result.result.profit - result.result.transactionCost) | percentage: 2"></td>
                     <td ng-bind="(result.result.forceClosedProfit - result.result.forceClosedTransactionCost) | percentage: 2"></td>
                     <!-- <td>
                       <span ng-bind="result.result.openAbsBounds[0]| number:3"></span>,
