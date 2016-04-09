@@ -321,10 +321,10 @@ dataMiningControllers.controller('PairFinderCtrl',
             }));
             var targetEl = angular.element(targetDiv)[0];
             var chart = new google.visualization.LineChart(targetEl);
-            google.visualization.events.addOneTimeListener(chart, 'ready', callback)
+            google.visualization.events.addOneTimeListener(chart, 'ready', callback);
             chart.draw(data, baseGoogleChartOptions);
             return {chart: chart, data: data};
-        }
+        };
 
         $scope.drawGraphWithStd = function(dataset, variableName, option, targetDiv, callback, stdList) {
             if (option == null) option = {};
@@ -369,20 +369,6 @@ dataMiningControllers.controller('PairFinderCtrl',
             }
         };
 
-        // $scope.drawStrategyGraph = function(historicDataset, targetDataset, variableName, stdList, option, targetDiv, callback) {
-        //     var mean = StatHelper.mean(historicDataset, variableName);
-        //     var std = StatHelper.std(historicDataset, variableName);
-
-        //     return $scope.drawGraphWithStd(
-        //         targetDataset,
-        //         variableName,
-        //         angular.extend({mean: mean, std: std}, option),
-        //         targetDiv,
-        //         callback,
-        //         stdList
-        //     );
-        // };
-
         $scope.drawStrategyGraph = function(strategyResult, variableName, option, targetDiv, callback) {
             var boundsList = strategyResult.result.boundsList;
             var openUpperBounds = [];
@@ -406,6 +392,7 @@ dataMiningControllers.controller('PairFinderCtrl',
                 {name: _name(-strategy.open.value), values: openLowerBounds}
             ];
 
+            if (!option) option = {};
             option.extraColumns = bounds.map(function(bound) {
                 return {
                     name: bound.name,
@@ -434,41 +421,41 @@ dataMiningControllers.controller('PairFinderCtrl',
             }
         };
 
-        var _prepareStrategyDataset = function(stock1, stock2, targetStartDate, targetEndDate, historicDataset) {
+        var _prepareStrategyDataset = function(stock1, stock2, targetStartDate, targetEndDate, historicalDataset) {
             var startDate = new Date(targetStartDate);
             var endDate = new Date(targetEndDate);
-            var historyStartDate = new Date(historicDataset[0].date);
-            var historyEndDate = new Date(historicDataset[historicDataset.length - 1].date);
+            var historyStartDate = new Date(historicalDataset[0].date);
+            var historyEndDate = new Date(historicalDataset[historicalDataset.length - 1].date);
             var dataPromise1 = YQLHelper.getHistoricalDataViaServer(stock1, startDate, endDate);
             var dataPromise2 = YQLHelper.getHistoricalDataViaServer(stock2, startDate, endDate);
             var dividendPromise1 = YQLHelper.getDividendsViaServer(stock1, startDate, endDate);
             var dividendPromise2 = YQLHelper.getDividendsViaServer(stock2, startDate, endDate);
-            var historicDividendPromise1 = YQLHelper.getDividendsViaServer(stock1, historyStartDate, historyEndDate);
-            var historicDividendPromise2 = YQLHelper.getDividendsViaServer(stock2, historyStartDate, historyEndDate);
+            var historicalDividendPromise1 = YQLHelper.getDividendsViaServer(stock1, historyStartDate, historyEndDate);
+            var historicalDividendPromise2 = YQLHelper.getDividendsViaServer(stock2, historyStartDate, historyEndDate);
             return $q.all([
                 dataPromise1,
                 dataPromise2,
                 dividendPromise1,
                 dividendPromise2,
-                historicDividendPromise1,
-                historicDividendPromise2
+                historicalDividendPromise1,
+                historicalDividendPromise2
             ]).then(function(responses) {
                 var stockData1 = responses[0].data.results;
                 var stockData2 = responses[1].data.results;
                 var stock1Dividends = responses[2].data.results;
                 var stock2Dividends = responses[3].data.results;
-                var historicDividends1 = responses[4].data.results;
-                var historicDividends2 = responses[5].data.results;
+                var historicalDividends1 = responses[4].data.results;
+                var historicalDividends2 = responses[5].data.results;
                 var rule = PairCalculator[$scope.pairingRule];
-                var historicResult = rule.strategy.prepare(historicDataset);
+                var historicalResult = rule.strategy.prepare(historicalDataset);
                 var targetDataset =  DatasetPreparator.makeSimpleDataset(stockData1, stockData2);
-                DatasetPreparator.makeDividends(historicDataset, historicDividends1, historicDividends2);
+                DatasetPreparator.makeDividends(historicalDataset, historicalDividends1, historicalDividends2);
                 DatasetPreparator.makeDividends(targetDataset, stock1Dividends, stock2Dividends);
                 rule.strategy.prepare(
                     targetDataset,
-                    historicResult? historicResult.regression : null
+                    historicalResult? historicalResult.regression : null
                 );
-                console.log(stock1, stock2, (historicResult? historicResult.regression.m : ''));
+                console.log(stock1, stock2, (historicalResult? historicalResult.regression.m : ''));
                 return {
                     stock1: stock1,
                     stock2: stock2,
@@ -477,7 +464,7 @@ dataMiningControllers.controller('PairFinderCtrl',
                     stock1Dividends: stock1Dividends,
                     stock2Dividends: stock2Dividends,
                     targetDataset: targetDataset,
-                    historicDataset: historicDataset
+                    historicalDataset: historicalDataset
                 };
             });
         };
@@ -500,17 +487,18 @@ dataMiningControllers.controller('PairFinderCtrl',
                 var variableName = rule.strategy.dependentVariableName;
                 $scope.strategiesResults = StrategyProcessor.doAllStrategies(
                     rule.strategy.processor,
-                    params.historicDataset,
+                    params.historicalDataset,
                     params.targetDataset,
                     variableName,
                     {transactionCost: $scope.transactionCost}
                 );
-                var mean = StatHelper.mean(params.historicDataset, variableName);
-                var std = StatHelper.std(params.historicDataset, variableName);
-                $scope.strategyGraph = $scope.drawGraphWithStd(
-                    params.targetDataset,
+                var strategyA1Result = $scope.strategiesResults.find(function(strategyResult) {
+                    return strategyResult.strategy.id === 'A2';
+                });
+                $scope.strategyGraph = $scope.drawStrategyGraph(
+                    strategyA1Result,
                     variableName,
-                    {mean: mean, std: std},
+                    null,
                     '.targetGraph',
                     function() {
                         if (params.targetDataset[0].deltaValue == null) return;
@@ -542,7 +530,7 @@ dataMiningControllers.controller('PairFinderCtrl',
                         pair: pair,
                         results: StrategyProcessor.doAllStrategies(
                             rule.strategy.processor,
-                            params.historicDataset,
+                            params.historicalDataset,
                             params.targetDataset,
                             rule.strategy.dependentVariableName,
                             {transactionCost: $scope.transactionCost}
@@ -602,7 +590,7 @@ dataMiningControllers.controller('PairFinderCtrl',
                 //     rowData.push(pair.pair.stock1);
                 //     rowData.push(pair.pair.stock2);
                 //     rowData.push(pair.pair.score);
-                //     rowData.push(StatHelper.std(pair.results[0].historicDataset, 'priceRatio'));
+                //     rowData.push(StatHelper.std(pair.results[0].historicalDataset, 'priceRatio'));
                 //     pair.results.forEach(function(result) {
                 //         rowData.push(result.result.forceClosedProfit || result.result.profit);
                 //     });
@@ -745,6 +733,7 @@ dataMiningControllers.controller('PairFinderCtrl',
         $scope.strategyList = StrategyList;
 
         $scope.getStrategyResults = function() {
+            $scope.strategyHistoricalResults = [];
             angular.element('.strategy-result-history-modal').modal('show');
             var selectedRows = $scope.scores.filter(function(row) {
                 return row._selected;
@@ -760,7 +749,7 @@ dataMiningControllers.controller('PairFinderCtrl',
                     var rule = PairCalculator[$scope.pairingRule];
                     row.strategyResult = StrategyProcessor.doAllStrategies(
                         rule.strategy.processor,
-                        params.historicDataset,
+                        params.historicalDataset,
                         params.targetDataset,
                         rule.strategy.dependentVariableName,
                         {transactionCost: $scope.transactionCost}
@@ -770,7 +759,7 @@ dataMiningControllers.controller('PairFinderCtrl',
                 return promise;
             });
             return $q.all(promises).then(function(strategyResults) {
-                $scope.strategyHistoricResults = strategyResults;
+                $scope.strategyHistoricalResults = strategyResults;
                 return strategyResults;
             });
         };

@@ -3,7 +3,8 @@
 
 var dataMiningApp = angular.module('dataMiningApp', [
     'dataMiningControllers',
-    'dataMiningServices'
+    'dataMiningServices',
+    'dataMiningDirectives'
 ]);
 
 if (typeof google !== 'undefined') {

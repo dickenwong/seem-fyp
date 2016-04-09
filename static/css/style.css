@@ -77,8 +77,8 @@
 	width: 30px;
 }
 input.row-checkbox {
-	width: 14px;
-    height: 14px;
+	width: 15px;
+    height: 15px;
     margin: 0;
     vertical-align: middle;
 }
@@ -97,4 +97,10 @@ input.row-checkbox {
 }
 .table-x-scroller-wrapper {
 	overflow-x: scroll;
+}
+.strategy-result {
+	font-size: 12px;
+}
+.strategy-time-frame-group label {
+	margin: 0 27.5px 0 10px;
 }
