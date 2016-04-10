@@ -273,38 +273,38 @@ dataMiningServices.factory('PairCalculator', [
 			var regressionLine = $window.ss.linearRegressionLine(result.regression);
 			var rSquared = $window.ss.rSquared(result.logPrices, regressionLine);
 			// console.log(rSquared);
-			var zeroCrossingDayCounts = dataset
-				.filter(function(row, i) {
-					return i != 0 && dataset[i-1].error * row.error < 0;
-				})
-				.map(function(row, i, arr) {
-					if (i == 0) return;
-					return row.day - arr[i-1].day;
-				})
-				.slice(1)
-				.sort(function(a, b) {return a < b? -1 : 1;});
+			// var zeroCrossingDayCounts = dataset
+			// 	.filter(function(row, i) {
+			// 		return i != 0 && dataset[i-1].error * row.error < 0;
+			// 	})
+			// 	.map(function(row, i, arr) {
+			// 		if (i == 0) return;
+			// 		return row.day - arr[i-1].day;
+			// 	})
+			// 	.slice(1)
+			// 	.sort(function(a, b) {return a < b? -1 : 1;});
 
-			var i = zeroCrossingDayCounts.length * 3 / 4;
-			var median2 = i % 1 === 0
-				? zeroCrossingDayCounts[i]
-				: (zeroCrossingDayCounts[Math.floor(i)] +
-					zeroCrossingDayCounts[Math.ceil(i)]) / 2;
+			// var i = zeroCrossingDayCounts.length * 3 / 4;
+			// var median2 = i % 1 === 0
+			// 	? zeroCrossingDayCounts[i]
+			// 	: (zeroCrossingDayCounts[Math.floor(i)] +
+			// 		zeroCrossingDayCounts[Math.ceil(i)]) / 2;
 
-			var zeroCrossingDayCounts = zeroCrossingDayCounts.filter(function(days) {
-				return days >= 5;
-			});
-			var i = zeroCrossingDayCounts.length / 2;
-			var median = i % 1 === 0
-				? zeroCrossingDayCounts[i]
-				: (zeroCrossingDayCounts[Math.floor(i)] +
-					zeroCrossingDayCounts[Math.ceil(i)]) / 2;
+			// var zeroCrossingDayCounts = zeroCrossingDayCounts.filter(function(days) {
+			// 	return days >= 5;
+			// });
+			// var i = zeroCrossingDayCounts.length / 2;
+			// var median = i % 1 === 0
+			// 	? zeroCrossingDayCounts[i]
+			// 	: (zeroCrossingDayCounts[Math.floor(i)] +
+			// 		zeroCrossingDayCounts[Math.ceil(i)]) / 2;
 			// if (rSquared > 0.8) console.log(rSquared, median, median2, zeroCrossingDayCounts.length);
 			return {score: -rSquared, dayCounts: dataset.length, dataset: dataset};
 		};
 
-		var byCointegrationUpdatingMeanAndSdWhenClose = byCointegration.bind(null);
-		var byCointegrationUpdatingMeanAndSd = byCointegration.bind(null);
-		var byCointegrationUpdatingWeightedMeanAndSd = byCointegration.bind(null);
+		var byCointegrationUpdatingThresholdWhenClose = byCointegration.bind(null);
+		var byCointegrationUpdatingThreshold = byCointegration.bind(null);
+		var byCointegrationUpdatingThresholdWithWeighting = byCointegration.bind(null);
 
 
 		byLeastSquareDeltaOfNormalized.strategy = {
@@ -319,22 +319,23 @@ dataMiningServices.factory('PairCalculator', [
 			processor: CointegrationStrategyProcessor.useNoUpdateBounds()
 		};
 
-		byCointegrationUpdatingMeanAndSdWhenClose.strategy = {
+		byCointegrationUpdatingThresholdWhenClose.strategy = {
 			prepare: DatasetPreparator.makeLogPriceCointegration,
 			dependentVariableName: 'error',
 			processor: CointegrationStrategyProcessor.useUpdateBoundsWhenClose()
 		};
 
-		byCointegrationUpdatingMeanAndSd.strategy = {
+		byCointegrationUpdatingThreshold.strategy = {
 			prepare: DatasetPreparator.makeLogPriceCointegration,
 			dependentVariableName: 'error',
-			processor: CointegrationStrategyProcessor.useUpdateBoundsNonStop()
+			processor: CointegrationStrategyProcessor.useUpdateBounds()
 		};
 
-		byCointegrationUpdatingWeightedMeanAndSd.strategy = {
+		byCointegrationUpdatingThresholdWithWeighting.strategy = {
 			prepare: DatasetPreparator.makeLogPriceCointegration,
 			dependentVariableName: 'error',
-			processor: CointegrationStrategyProcessor.useUpdateWeightedBoundsNonStop()
+			processor: CointegrationStrategyProcessor.useUpdateBounds(),
+			useBoundWeighting: true
 		};
 
 
@@ -343,10 +344,10 @@ dataMiningServices.factory('PairCalculator', [
 			// 'byLeastSquareDeltaPercentChange': byLeastSquareDeltaPercentChange,
 			byLeastSquareDeltaOfNormalized: byLeastSquareDeltaOfNormalized,
 			byCointegration: byCointegration,
-			byCointegrationUpdatingMeanAndSdWhenClose: byCointegrationUpdatingMeanAndSdWhenClose,
+			byCointegrationUpdatingThresholdWhenClose: byCointegrationUpdatingThresholdWhenClose,
 
-			byCointegrationUpdatingMeanAndSd: byCointegrationUpdatingMeanAndSd,
-			byCointegrationUpdatingWeightedMeanAndSd: byCointegrationUpdatingWeightedMeanAndSd
+			byCointegrationUpdatingThreshold: byCointegrationUpdatingThreshold,
+			byCointegrationUpdatingThresholdWithWeighting: byCointegrationUpdatingThresholdWithWeighting
 		};
 	}
 ]);
@@ -415,8 +416,9 @@ dataMiningServices.factory('DatasetPreparator',
 			});
 		};
 
-		var makeLogPriceCointegration = function(dataset, regression) {
+		var makeLogPriceCointegration = function(dataset, regression, variablePostfix) {
 			// y = b + mx + e (let y = stock1, x = stock2)
+			if (variablePostfix == null) variablePostfix = '';
 			var logPrices = dataset.map(function(row) {
 				return [Math.log(row.stock2Price), Math.log(row.stock1Price)];
 			});
@@ -426,8 +428,8 @@ dataMiningServices.factory('DatasetPreparator',
 				row.stock2Value = regression.m * logPrices[i][0] + regression.b;
 				// y - mx - b = e
 				row.deltaValue = row.stock1Value - row.stock2Value;
-				row.error = row.deltaValue;
-				row.cointegrationFactor = regression.m;
+				row['error' + variablePostfix] = row.deltaValue;
+				row['cointegrationFactor' + variablePostfix] = regression.m;
 			});
 			return {logPrices: logPrices, regression: regression};
 			// /*----------  Subsection comment block  ----------*/
@@ -464,20 +466,54 @@ dataMiningServices.factory('StrategyProcessor',
 
 		var doStrategy = function(strategyProcessor, strategy, historicalDataset,
 				targetDataset, valuePropertyName, options) {
+			if (!options) options = {};
+			options.stopLoss = {percent: 100};
+			options.forceClose = false;
+			// options.updateDataset = 'EVERY_DAY';
+
+			var stopLoss = options.stopLoss;
+			var boundWeightRules = options.boundWeightRules;
+			var canForceClose = options.forceClose;
+			var needUpdateDataset = options.updateDataset;
+			if (needUpdateDataset) {
+				var originalValuePropertyName = valuePropertyName;
+				var latestNamePostFix = 'Latest';
+				valuePropertyName += latestNamePostFix;
+			}
+
 			var lastOpen = null;
 			var boundsList = [];
 			var actions = [];
+
 			targetDataset.forEach(function(row, i) {
+				if (needUpdateDataset) {
+					strategyProcessor.updateDataset(historicalDataset,
+						targetDataset, row, i, latestNamePostFix);
+				}
 				var value = row[valuePropertyName];
 				var bounds = boundsList[i] = strategyProcessor.getBounds(
 					boundsList[i-1], strategy, row, lastOpen, historicalDataset,
-					targetDataset, valuePropertyName
+					targetDataset, valuePropertyName, boundWeightRules
 				);
+				if (!stopLoss) {
+					var stopLossBounds = {upper: Infinity, lower: -Infinity};
+				} else {
+					var stopLossBounds = {
+						upper: bounds.open.upper +
+							Math.abs(bounds.open.upper - bounds.mean) * stopLoss.percent / 100,
+						lower: bounds.open.lower -
+							Math.abs(bounds.open.lower - bounds.mean) * stopLoss.percent / 100
+					}
+				}
 
 				if (!lastOpen) {
 					var exceedUpperOpenBound = value >= bounds.open.upper;
 					var exceedLowerOpenBound = value <= bounds.open.lower;
-					if (exceedUpperOpenBound || exceedLowerOpenBound) {
+					var insideStopLossBounds = (
+						value <= stopLossBounds.upper &&
+						value >= stopLossBounds.lower
+					);
+					if ((exceedUpperOpenBound || exceedLowerOpenBound) && insideStopLossBounds) {
 						lastOpen = {
 							type: 'OPEN',
 							stock1Action: exceedUpperOpenBound? 'SHORT' : 'LONG',
@@ -489,13 +525,33 @@ dataMiningServices.factory('StrategyProcessor',
 					if (row.stock1Dividend || row.stock2Dividend) {
 						actions.push(angular.extend({}, row, {type: 'DIVIDEND'}));
 					}
-					if (value <= bounds.close.upper && lastOpen.stock1Action == 'SHORT' ||
-						value >= bounds.close.lower && lastOpen.stock1Action == 'LONG') {
+					var reachCloseBound = (
+						lastOpen.stock1Action == 'SHORT' && value <= bounds.close.upper ||
+						lastOpen.stock1Action == 'LONG' && value >= bounds.close.lower
+					);
+					var exceedStopLossBound = (
+						lastOpen.stock1Action == 'SHORT' && value >= stopLossBounds.upper ||
+						lastOpen.stock1Action == 'LONG' && value <= stopLossBounds.lower
+					);
+
+					if (reachCloseBound) {
 						actions.push(angular.extend({}, row, {type: 'CLOSE'}));
 						lastOpen = null;
-					} else if (i == targetDataset.length - 1) {
+
+					} else if (exceedStopLossBound) {
+						var exceedStopLossBound = (
+							lastOpen.stock1Action == 'SHORT' && value >= stopLossBounds.upper ||
+							lastOpen.stock1Action == 'LONG' && value <= stopLossBounds.lower
+						);
+						if (exceedStopLossBound) {
+							actions.push(angular.extend({}, row, {type: 'STOP_LOSS'}));
+							lastOpen = null;
+						}
+
+					} else if (canForceClose && i == targetDataset.length - 1) {
 						actions.push(angular.extend({}, row, {type: 'FORCE_CLOSE'}));
 					}
+
 				}
 
 			});
@@ -538,19 +594,20 @@ dataMiningServices.factory('StrategyProcessor',
 
 			actions.forEach(function(action, i) {
 				var tValue = tStrategy.value + profit * (+tStrategy.accumalated);
-				if (action.type == 'OPEN') {
+				if (action.type === 'OPEN') {
 					openCounts += 1;
 					lastOpen = action;
 					angular.extend(action, strategyProcessor.getStockShares(tValue, action));
 					action.transactionCost = _getTransactionCost(tCostPercent, action);
 					transactionCost += action.transactionCost;
 
-				} else if (action.type == 'DIVIDEND') {
+				} else if (action.type === 'DIVIDEND') {
 					action.profit = _getDividend(lastOpen, action);
 					dividendProfitSinceLastOpen += action.profit;
 					dividendProfit += action.profit;
 
-				} else if (action.type == 'CLOSE' || action.type == 'FORCE_CLOSE') {
+				} else if (action.type === 'CLOSE' || action.type === 'FORCE_CLOSE' ||
+						action.type === 'STOP_LOSS') {
 					var thisHoldingDuration = action.day - lastOpen.day;
 					var thisProfit = _getProfit(lastOpen, action);
 					var thisTransactionCost = _getTransactionCost(
@@ -566,7 +623,7 @@ dataMiningServices.factory('StrategyProcessor',
 					);
 
 					action.lastOpen = lastOpen;
-					if (action.type === 'CLOSE') {
+					if (action.type === 'CLOSE'|| action.type === 'STOP_LOSS') {
 						closeCounts += 1;
 						holdingDuration += thisHoldingDuration;
 						action.profit = thisProfit;
@@ -621,7 +678,8 @@ dataMiningServices.factory('StrategyProcessor',
 				profitPercent: profitPercent,
 				forceClosedProfitPercent: forceClosedProfitPercent,
 
-				actions: actions
+				actions: actions,
+				options: options
 			};
 
 			if (strategyProcessor.formatResult) strategyProcessor.formatResult(result);
@@ -740,7 +798,8 @@ dataMiningServices.factory('PriceRatioStrategyProcessor', [
 					upper: mean + strategy.close.value * std,
 					lower: mean - strategy.close.value * std
 				},
-				mean: mean
+				mean: mean,
+				std: std
 			};
 			return bounds;
 		};
@@ -755,20 +814,14 @@ dataMiningServices.factory('PriceRatioStrategyProcessor', [
 
 
 dataMiningServices.factory('CointegrationStrategyProcessor', [
-	'StatHelper',
-	function(StatHelper) {
+	'StatHelper', '$window', 'DatasetPreparator',
+	function(StatHelper, $window, DatasetPreparator) {
 
 		var getStockShares = function(tValue, openAction) {
 			return {
 				stock1Share: tValue,
 				stock2Share: tValue * openAction.cointegrationFactor
 			};
-			// var totalWeight = openAction.stock1Price +
-			// 	Math.abs(openAction.cointegrationFactor) * openAction.stock2Price;
-			// return {
-			// 	stock1Share: tValue * 1 / totalWeight,
-			// 	stock2Share: tValue * openAction.cointegrationFactor / totalWeight
-			// };
 		};
 
 		var formatResult = function(result) {
@@ -781,12 +834,19 @@ dataMiningServices.factory('CointegrationStrategyProcessor', [
 		};
 
 		var getBounds = function(lastBounds, strategy, currentRow, lastOpenAction,
-				historicalDataset, targetDataset, valuePropertyName, weightFunc) {
+				historicalDataset, targetDataset, valuePropertyName,
+				boundWeightRules) {
 			var upToDateDataset = targetDataset.filter(function(row) {
 				return row.day <= currentRow.day
 			});
 			upToDateDataset = historicalDataset.concat(upToDateDataset);
-			if (weightFunc) {
+			if (boundWeightRules) {
+				var weightFunc = function(row, i, dataset) {
+					var rule = boundWeightRules.find(function(rule) {
+						return dataset.length - i <= rule.previousDaysCount;
+					});
+					return rule? rule.weight : 0;
+				};
 				var weights = upToDateDataset.map(weightFunc);
 				var std = StatHelper.weightedStd(upToDateDataset, valuePropertyName, weights);
 				var mean = StatHelper.weightedMean(upToDateDataset, valuePropertyName, weights);
@@ -803,48 +863,56 @@ dataMiningServices.factory('CointegrationStrategyProcessor', [
 					upper: mean + strategy.close.value * std,
 					lower: mean - strategy.close.value * std
 				},
-				mean: mean
+				mean: mean,
+				std: std
 			};
 			return bounds;
+		};
+
+		var updateDataset = function(historicalDataset, targetDataset,
+				currentRow, currentRowIndex, latestNamePostFix) {
+			var dataset = historicalDataset
+				.slice(currentRowIndex + 1)
+				.concat(targetDataset.slice(0, currentRowIndex + 1));
+			var logPrices = dataset.map(function(row) {
+				return [Math.log(row.stock2Price), Math.log(row.stock1Price)];
+			});
+			var regression = $window.ss.linearRegression(logPrices);
+			DatasetPreparator.makeLogPriceCointegration(
+				dataset,
+				regression,
+				latestNamePostFix
+			);
+			currentRow.error = currentRow['error' + latestNamePostFix];
+			currentRow.cointegrationFactor = currentRow['cointegrationFactor' + latestNamePostFix];
 		};
 
 		var useUpdateBoundsWhenClose = function() {
 			var _getBounds = getBounds;
 			return angular.extend({}, this, {
 				getBounds: function(lastBounds, strategy, currentRow, lastOpenAction,
-						historicalDataset, targetDataset, valuePropertyName) {
+						historicalDataset, targetDataset, valuePropertyName,
+						boundWeightRules) {
 					if (lastOpenAction) return lastBounds;
 					return _getBounds.apply(this, arguments);
 				}
 			});
 		};
 
-		var useUpdateBoundsNonStop = function() {
+		var useUpdateBounds = function() {
 			return angular.extend({}, this)
-		};
-
-		var useUpdateWeightedBoundsNonStop = function() {
-			var _getBounds = getBounds;
-			return angular.extend({}, this, {
-				getBounds: function() {
-					var weightFunc = function(row, i, dataset) {
-						if (dataset.length - i <= 300) return 1;
-						return 0;
-					};
-					Array.prototype.push.call(arguments, weightFunc);
-					return _getBounds.apply(this, arguments);
-				}
-			});
 		};
 
 		var useNoUpdateBounds = function() {
 			var _getBounds = getBounds;
 			return angular.extend({}, this, {
 				getBounds: function(lastBounds, strategy, currentRow, lastOpenAction,
-						historicalDataset, targetDataset, valuePropertyName) {
+						historicalDataset, targetDataset, valuePropertyName,
+						boundWeightRules) {
 					if (lastBounds) return lastBounds;
 					return _getBounds.call(this, lastBounds, strategy, currentRow,
-						lastOpenAction, historicalDataset, [], valuePropertyName);
+						lastOpenAction, historicalDataset, [], valuePropertyName,
+						boundWeightRules);
 				}
 			});
 		};
@@ -854,10 +922,11 @@ dataMiningServices.factory('CointegrationStrategyProcessor', [
 			getStockShares: getStockShares,
 			formatResult: formatResult,
 			getBounds: getBounds,
+			updateDataset: updateDataset,
+
 			useUpdateBoundsWhenClose: useUpdateBoundsWhenClose,
-			useUpdateBoundsNonStop: useUpdateBoundsNonStop,
-			useNoUpdateBounds: useNoUpdateBounds,
-			useUpdateWeightedBoundsNonStop: useUpdateWeightedBoundsNonStop
+			useUpdateBounds: useUpdateBounds,
+			useNoUpdateBounds: useNoUpdateBounds
 		};
 	}
 ]);

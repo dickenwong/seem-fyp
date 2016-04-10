@@ -42,4 +42,5 @@ function tableCellDragSelectable($document) {
   }
 }
 
+
 })(angular);

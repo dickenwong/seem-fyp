@@ -52,15 +52,24 @@ dataMiningControllers.controller('PairFinderCtrl',
               $window, google, StrategyProcessor, StatHelper, DatasetPreparator,
               StrategyList, $filter, $timeout) {
 
-        $scope.calculationRules = Object.keys(PairCalculator).filter(function(funcName){
-            return funcName.indexOf('_') != 0;
-        }).map(function(funcName) {
-            var ruleName = funcName.replace(/([A-Z])/g, ' $1').slice(funcName.indexOf('by ') + 3);
-            return {name: ruleName, funcName: funcName};
-        });
+        $scope.calculationRules = Object.keys(PairCalculator)
+            .filter(function(funcName){
+                return funcName.indexOf('_') != 0;
+            })
+            .map(function(funcName) {
+                var ruleName = funcName
+                    .replace(/([A-Z])/g, ' $1')
+                    .slice(funcName.indexOf('by ') + 3);
+                return {name: ruleName, funcName: funcName};
+            });
         $scope.stockCategories = ([{name: 'Stock Category'}]).concat(StockCategories);
-        $scope.$watch('stockCategory', function(newValue, oldValue) {
-            if (newValue) $scope.stockList = newValue.stocks;
+
+        $scope.$watch('pairingRule', function(newVal, oldVal) {
+            var rule = PairCalculator[newVal];
+            $scope.showBoundWeightRules = rule && rule.strategy.useBoundWeighting;
+        });
+        $scope.$watch('stockCategory', function(newVal, oldVal) {
+            if (newVal) $scope.stockList = newVal.stocks;
         });
 
         $scope.startDate = '2009-01-01';
@@ -485,12 +494,17 @@ dataMiningControllers.controller('PairFinderCtrl',
             ).then(function (params) {
                 var rule = PairCalculator[$scope.pairingRule];
                 var variableName = rule.strategy.dependentVariableName;
+                var options = {
+                    transactionCost: $scope.transactionCost,
+                    boundWeightRules: rule.strategy.useBoundWeighting
+                        ? $scope.boundWeightRules : null
+                };
                 $scope.strategiesResults = StrategyProcessor.doAllStrategies(
                     rule.strategy.processor,
                     params.historicalDataset,
                     params.targetDataset,
                     variableName,
-                    {transactionCost: $scope.transactionCost}
+                    options
                 );
                 var strategyA1Result = $scope.strategiesResults.find(function(strategyResult) {
                     return strategyResult.strategy.id === 'A2';
@@ -525,6 +539,11 @@ dataMiningControllers.controller('PairFinderCtrl',
                     pair.dataset
                 ).then(function (params) {
                     var rule = PairCalculator[$scope.pairingRule];
+                    var options = {
+                        transactionCost: $scope.transactionCost,
+                        boundWeightRules: rule.strategy.useBoundWeighting
+                            ? $scope.boundWeightRules : null
+                    };
                     strategyTests.push({
                         top: i,
                         pair: pair,
@@ -533,7 +552,7 @@ dataMiningControllers.controller('PairFinderCtrl',
                             params.historicalDataset,
                             params.targetDataset,
                             rule.strategy.dependentVariableName,
-                            {transactionCost: $scope.transactionCost}
+                            options
                         )
                     });
                 });
@@ -607,10 +626,19 @@ dataMiningControllers.controller('PairFinderCtrl',
                 .filter(function(action) {
                     return action.type === 'OPEN' ||
                         action.type === 'CLOSE' ||
-                        action.type === 'FORCE_CLOSE';
+                        action.type === 'FORCE_CLOSE' ||
+                        action.type === 'STOP_LOSS';
                 })
                 .map(function(action) {
-                    var color = action.type === 'OPEN'? 'green' : 'red';
+                    switch (action.type) {
+                        case 'OPEN':
+                            var color = 'green'; break;
+                        case 'STOP_LOSS':
+                            var color = 'orange'; break;
+                        case 'CLOSE':
+                        case 'FORCE_CLOSE':
+                            var color = 'red'; break;
+                    }
                     return {
                         filter: [{column: 0, value: new Date(action.date)}],
                         style: 'point {shape-type: circle; fill-color: ' + color + ';}'
@@ -747,12 +775,17 @@ dataMiningControllers.controller('PairFinderCtrl',
                     row.dataset
                 ).then(function (params) {
                     var rule = PairCalculator[$scope.pairingRule];
+                    var options = {
+                        transactionCost: $scope.transactionCost,
+                        boundWeightRules: rule.strategy.useBoundWeighting
+                            ? $scope.boundWeightRules : null
+                    };
                     row.strategyResult = StrategyProcessor.doAllStrategies(
                         rule.strategy.processor,
                         params.historicalDataset,
                         params.targetDataset,
                         rule.strategy.dependentVariableName,
-                        {transactionCost: $scope.transactionCost}
+                        options
                     );
                     return row;
                 });
@@ -765,6 +798,69 @@ dataMiningControllers.controller('PairFinderCtrl',
         };
 
         /*=======  End of Row data selection  =======*/
+
+
+        /*====================================================
+        =            Weights Table for Thresholds            =
+        ====================================================*/
+
+        $scope.showBoundWeightRules = false;
+        $scope.boundWeightRules = [
+            {previousDaysCount: 200, weight: 2},
+            {previousDaysCount: 300, weight: 1}
+        ];
+
+        $scope.addBoundWeightRule = function() {
+            $scope.boundWeightRules.push({});
+        };
+
+        var _parseRules = function(rules) {
+            rules = rules
+                .filter(function(rule) {
+                    rule.previousDaysCount = toNumber(rule.previousDaysCount);
+                    rule.weight = toNumber(rule.weight);
+                    return !(isNaN(rule.previousDaysCount) || isNaN(rule.weight));
+                })
+                .sort(function(rule1, rule2) {
+                    return rule1.previousDaysCount - rule2.previousDaysCount;
+                });
+            return rules;
+
+            function toNumber(text) {
+                if (/^\s*$/.test(text)) return NaN;
+                if (/^\s*(inf|infinity)\s*$/i.test(text)) return Infinity;
+                return Number(text);
+            }
+        };
+
+        $scope.parseBoundWeightRules = function() {
+            if (!$scope.showBoundWeightRules) return;
+            $scope.boundWeightRules = _parseRules($scope.boundWeightRules);
+        };
+
+        /*=====  End of Weights Table for Thresholds  ======*/
+
+        /*==================================================================
+        =        Weights Table for Dependent Variable Recalibration        =
+        ==================================================================*/
+
+        $scope.showDependentVariableWeightRules = true;
+
+        $scope.dependentVariableWeightRules = [
+            {previousDaysCount: Infinity, weight: 1}
+        ];
+
+        $scope.addDependentVariableWeight = function() {
+            $scope.dependentVariableWeightRules.push({});
+        };
+
+        $scope.parseDependentVariableWeightRules = function() {
+            if (!$scope.showBoundWeightRules) return;
+            $scope.boundWeightRules = _parseRules($scope.boundWeightRules);
+        };
+
+        /*=  End of Weights Table for Dependent Variable Recalibration   =*/
+
 
     }]
 )

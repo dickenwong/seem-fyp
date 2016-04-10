@@ -51,8 +51,6 @@
         Please strictly follow the ISO date format (YYYY-MM-DD). <br>
       </p>
       <div class="input-wrapper">
-        <!-- <input type="text" class="form-control" ng-model="stockCode1" placeholder="Stock Code 1">
-        <input type="text" class="form-control" ng-model="stockCode2" placeholder="Stock Code 2"> -->
         <input type="text" class="form-control input-date" ng-model="startDate" placeholder="From (YYYY-MM-DD)">
         <input type="text" class="form-control input-date" ng-model="endDate" placeholder="To (YYYY-MM-DD)">
         <div class="radio-wrapper">
@@ -63,11 +61,52 @@
             </label>
           </div>
         </div>
-        <!-- <button class="btn btn-material-pink-500"
-            ng-disabled="!stockCode1 || !stockCode2 || !startDate || !endDate || !pairingRule"
-            ng-click="findPair()">
-          Run
-        </button> -->
+
+        <div class="table-x-scroller-wrapper" ng-show="showBoundWeightRules">
+          <table class="table table-bounds-weights">
+            <tr>
+              <td>Previous Days</td>
+              <td ng-repeat="rule in boundWeightRules">
+                <input type="text" class="form-control" ng-model="rule.previousDaysCount">
+              </td>
+              <td rowspan="2"
+                  style="cursor: pointer;"
+                  ng-click="addBoundWeightRule()">
+                <span>➕</span>
+              </td>
+            </tr>
+            <tr>
+              <td>Weight</td>
+              <td ng-repeat="rule in boundWeightRules">
+                <input type="text"class="form-control" ng-model="rule.weight">
+              </td>
+            </tr>
+          </table>
+        </div>
+
+       <!--  <div class="table-x-scroller-wrapper"
+             ng-show="showDependentVariableWeightRules">
+          <table class="table table-bounds-weights">
+            <tr>
+              <td>Previous Days</td>
+              <td ng-repeat="rule in dependentVariableWeightRules">
+                <input type="text" class="form-control" ng-model="rule.previousDaysCount">
+              </td>
+              <td rowspan="2"
+                  style="cursor: pointer;"
+                  ng-click="addDependentVariableWeight()">
+                <span>➕</span>
+              </td>
+            </tr>
+            <tr>
+              <td>Weight</td>
+              <td ng-repeat="rule in dependentVariableWeightRules">
+                <input type="text"class="form-control" ng-model="rule.weight">
+              </td>
+            </tr>
+          </table>
+        </div> -->
+
         <select class="form-control"
             ng-class="{placeholder: !stockCategory.stocks}"
             ng-model="stockCategory"
@@ -75,7 +114,7 @@
         <textarea class="form-control" ng-model="stockList"></textarea>
         <button class="btn btn-material-pink-500"
             ng-disabled="!startDate || !endDate || !pairingRule || !stockList"
-            ng-click="crawl()">
+            ng-click="parseBoundWeightRules(); crawl();">
           Crawl
         </button>
       </div>
@@ -326,13 +365,13 @@
                       ng-click="sortStrategiesResultsBy('PROFIT_MINUS_TRANSACTION_COST')">
                       Profit (deducting Transaction Cost)
                     </th>
-                    <th style="width: 20%; cursor: pointer;"
+                    <!-- <th style="width: 20%; cursor: pointer;"
                       ng-click="sortStrategiesResultsBy('FORCE_CLOSED_PROFIT_MINUS_TRANSACTION_COST')">
                       Profit (Force Close and deducting Transaction Cost)
-                    </th>
+                    </th> -->
                     <!-- <th style="width: 10%">Open at</th> -->
                     <!-- <th style="width: 10%">Close at</th> -->
-                    <th style="width: 10%">Profit Percent</th>
+                    <th style="width: 15%">Profit Percent</th>
                     <th style="width: 10%">Open Counts</th>
                     <th style="width: 10%">Holding Days</th>
                     <!-- <th style="width: 10%">Is Holding</th> -->
@@ -348,7 +387,7 @@
                     <!-- <td ng-bind="result.result.profit | percentage: 2"></td> -->
                     <!-- <td ng-bind="result.result.forceClosedProfit | percentage: 2"></td> -->
                     <td ng-bind="(result.result.profit - result.result.transactionCost) | number: 4"></td>
-                    <td ng-bind="(result.result.forceClosedProfit - result.result.forceClosedTransactionCost) | number: 4"></td>
+                    <!-- <td ng-bind="(result.result.forceClosedProfit - result.result.forceClosedTransactionCost) | number: 4"></td> -->
                     <td ng-bind="result.result.forceClosedProfitPercent | percentage: 2"></td>
                     <td ng-bind="result.result.openCounts"></td>
                     <td ng-bind="result.result.holdingDuration"></td>

@@ -16,6 +16,7 @@
 }
 .input-wrapper .radio-wrapper {
 	text-align: left;
+	font-size: 13px;
 }
 .input-wrapper select.form-control.placeholder {
 	color: #BBB;
@@ -103,4 +104,25 @@ input.row-checkbox {
 }
 .strategy-time-frame-group label {
 	margin: 0 27.5px 0 10px;
+}
+.table.table-bounds-weights {
+	font-size: 13px;
+	width: initial;
+	margin: 10px auto;
+	border: 1px solid #ddd;
+}
+.table-bounds-weights td,
+.table-bounds-weights th {
+	padding: 5px !important;
+	vertical-align: middle !important;
+    white-space: nowrap;
+}
+.table-bounds-weights input.form-control {
+	font-size: 13px;
+	padding: 0;
+	margin: 0;
+	height: 22px;
+	width: 30px;
+	letter-spacing: 0;
+	text-align: center;
 }
