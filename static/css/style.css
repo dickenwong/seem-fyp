@@ -1,5 +1,5 @@
 .input-wrapper {
-	max-width: 280px;
+	max-width: 320px;
 	margin: 0 auto;
 }
 .input-wrapper .form-control {
@@ -21,6 +21,16 @@
 .input-wrapper select.form-control.placeholder {
 	color: #BBB;
 }
+.input-wrapper .checkbox {
+	font-size: 14px;
+	text-align: left;
+	padding-left: 7px;
+	margin-bottom: 5px;
+}
+.input-wrapper .checkbox-desc {
+	padding-left: 15px;
+}
+
 .modal-dialog.modal-lg {
 	min-width: 760px;
     width: 90%;
@@ -108,7 +118,7 @@ input.row-checkbox {
 .table.table-bounds-weights {
 	font-size: 13px;
 	width: initial;
-	margin: 10px auto;
+	margin: 0 auto;
 	border: 1px solid #ddd;
 }
 .table-bounds-weights td,
@@ -121,8 +131,14 @@ input.row-checkbox {
 	font-size: 13px;
 	padding: 0;
 	margin: 0;
-	height: 22px;
-	width: 30px;
+	height: 20px;
+	width: 50px;
 	letter-spacing: 0;
 	text-align: center;
+}
+.extra-options {
+	margin: 5px 0 20px;
+	padding: 5px 0 20px;
+	border-top: 1px solid #d2d2d2;
+	border-bottom: 1px solid #d2d2d2;
 }

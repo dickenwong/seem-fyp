@@ -304,7 +304,6 @@ dataMiningServices.factory('PairCalculator', [
 
 		var byCointegrationUpdatingThresholdWhenClose = byCointegration.bind(null);
 		var byCointegrationUpdatingThreshold = byCointegration.bind(null);
-		var byCointegrationUpdatingThresholdWithWeighting = byCointegration.bind(null);
 
 
 		byLeastSquareDeltaOfNormalized.strategy = {
@@ -316,7 +315,7 @@ dataMiningServices.factory('PairCalculator', [
 		byCointegration.strategy = {
 			prepare: DatasetPreparator.makeLogPriceCointegration,
 			dependentVariableName: 'error',
-			processor: CointegrationStrategyProcessor.useNoUpdateBounds()
+			processor: CointegrationStrategyProcessor.useUpdateBounds()
 		};
 
 		byCointegrationUpdatingThresholdWhenClose.strategy = {
@@ -331,23 +330,13 @@ dataMiningServices.factory('PairCalculator', [
 			processor: CointegrationStrategyProcessor.useUpdateBounds()
 		};
 
-		byCointegrationUpdatingThresholdWithWeighting.strategy = {
-			prepare: DatasetPreparator.makeLogPriceCointegration,
-			dependentVariableName: 'error',
-			processor: CointegrationStrategyProcessor.useUpdateBounds(),
-			useBoundWeighting: true
-		};
-
-
 		return {
 			// 'byLeastSquare': byLeastSquare,
 			// 'byLeastSquareDeltaPercentChange': byLeastSquareDeltaPercentChange,
 			byLeastSquareDeltaOfNormalized: byLeastSquareDeltaOfNormalized,
 			byCointegration: byCointegration,
-			byCointegrationUpdatingThresholdWhenClose: byCointegrationUpdatingThresholdWhenClose,
-
-			byCointegrationUpdatingThreshold: byCointegrationUpdatingThreshold,
-			byCointegrationUpdatingThresholdWithWeighting: byCointegrationUpdatingThresholdWithWeighting
+			// byCointegrationUpdatingThresholdWhenClose: byCointegrationUpdatingThresholdWhenClose,
+			// byCointegrationUpdatingThreshold: byCointegrationUpdatingThreshold
 		};
 	}
 ]);
@@ -388,7 +377,9 @@ dataMiningServices.factory('DatasetPreparator',
 					day: dayCounts,
 					date: date,
 					stock1Price: +stockData1[date].Close,
-					stock2Price: +stockData2[date].Close
+					stock2Price: +stockData2[date].Close,
+					stock1AdjClose: +stockData1[date]['Adj Close'],
+					stock2AdjClose: +stockData2[date]['Adj Close']
 				});
 			});
 			return dataset;
@@ -420,7 +411,10 @@ dataMiningServices.factory('DatasetPreparator',
 			// y = b + mx + e (let y = stock1, x = stock2)
 			if (variablePostfix == null) variablePostfix = '';
 			var logPrices = dataset.map(function(row) {
-				return [Math.log(row.stock2Price), Math.log(row.stock1Price)];
+				return [
+					Math.log(row.stock2AdjClose),
+					Math.log(row.stock1AdjClose)
+				];
 			});
 			if (!regression) regression = $window.ss.linearRegression(logPrices);
 			dataset.forEach(function(row, i) {
@@ -464,18 +458,51 @@ dataMiningServices.factory('StrategyProcessor',
 	['PairCalculator', 'StatHelper', 'StrategyList',
 	function (PairCalculator, StatHelper, StrategyList) {
 
+		var _getUptoDateDataset = function(currentRow, historicalDataset,
+				targetDataset) {
+			var dataset = targetDataset.filter(function(row) {
+				return row.day <= currentRow.day
+			});
+			dataset = historicalDataset.concat(dataset);
+			return dataset;
+		};
+
+		var _getWeights = function(rules, upToDateDataset, historicalDataset) {
+			var weightFunc = function(row, i, dataset) {
+				var rule = rules.find(function(rule) {
+					var prevDayCount = rule.previousDaysCount === '#history'
+						? historicalDataset.length
+						: rule.previousDaysCount;
+					return dataset.length - i <= prevDayCount;
+				});
+				return rule? rule.weight : 0;
+			};
+			return upToDateDataset.map(weightFunc);
+		};
+
 		var doStrategy = function(strategyProcessor, strategy, historicalDataset,
 				targetDataset, valuePropertyName, options) {
 			if (!options) options = {};
-			options.stopLoss = {percent: 100};
+			/*===========================
+			=            DEV            =
+			===========================*/
+			options.stopLoss = {unit: 'STD', value: 3};
 			options.forceClose = false;
+			// options.dependentVariableWeightRules = [
+			// 	{previousDaysCount: '#history', weight: 1}
+			// ];
 			// options.updateDataset = 'EVERY_DAY';
+			/*=====  End of DEV  ======*/
 
 			var stopLoss = options.stopLoss;
+			var useDynamicBounds = options.useDynamicBounds;
+			var useDynamicDependentVariable = options.useDynamicDependentVariable;
+			var updateTiming = options.updateTiming;
+
 			var boundWeightRules = options.boundWeightRules;
-			var canForceClose = options.forceClose;
-			var needUpdateDataset = options.updateDataset;
-			if (needUpdateDataset) {
+			var dependentVariableWeightRules = options.dependentVariableWeightRules;
+
+			if (updateTiming && useDynamicDependentVariable) {
 				var originalValuePropertyName = valuePropertyName;
 				var latestNamePostFix = 'Latest';
 				valuePropertyName += latestNamePostFix;
@@ -486,24 +513,63 @@ dataMiningServices.factory('StrategyProcessor',
 			var actions = [];
 
 			targetDataset.forEach(function(row, i) {
-				if (needUpdateDataset) {
-					strategyProcessor.updateDataset(historicalDataset,
-						targetDataset, row, i, latestNamePostFix);
-				}
-				var value = row[valuePropertyName];
-				var bounds = boundsList[i] = strategyProcessor.getBounds(
-					boundsList[i-1], strategy, row, lastOpen, historicalDataset,
-					targetDataset, valuePropertyName, boundWeightRules
+				var upToDateDataset = _getUptoDateDataset(
+					row,
+					historicalDataset,
+					targetDataset
 				);
+				var needUpdate = (
+					updateTiming === 'EVERYDAY' ||
+					updateTiming === 'WHEN_CLOSED' && !lastOpen
+				);
+
+				// Update Dataset If needed
+				if (needUpdate && useDynamicDependentVariable) {
+					var dependentVariableWeights = _getWeights(
+						dependentVariableWeightRules,
+						upToDateDataset,
+						historicalDataset
+					);
+					strategyProcessor.updateDataset(
+						row,
+						upToDateDataset,
+						dependentVariableWeights,
+						latestNamePostFix
+					)
+				}
+
+				// Find Tradinig Thresholds
+				if ((needUpdate && useDynamicBounds) || !boundsList[i-1]) {
+					var boundWeights = _getWeights(
+						boundWeightRules,
+						upToDateDataset,
+						historicalDataset
+					);
+					var bounds = boundsList[i] = strategyProcessor.getBounds(
+						boundsList[i-1], strategy, lastOpen, upToDateDataset,
+						historicalDataset, targetDataset, valuePropertyName,
+						boundWeights
+					);
+				} else {
+					var bounds = boundsList[i-1];
+				}
+
+				var value = row[valuePropertyName];
+
 				if (!stopLoss) {
 					var stopLossBounds = {upper: Infinity, lower: -Infinity};
-				} else {
+				} else if (stopLoss.unit === 'OPEN_POSITION') {
 					var stopLossBounds = {
 						upper: bounds.open.upper +
-							Math.abs(bounds.open.upper - bounds.mean) * stopLoss.percent / 100,
+							Math.abs(bounds.open.upper - bounds.mean) * stopLoss.value,
 						lower: bounds.open.lower -
-							Math.abs(bounds.open.lower - bounds.mean) * stopLoss.percent / 100
-					}
+							Math.abs(bounds.open.lower - bounds.mean) * stopLoss.value
+					};
+				} else if (stopLoss.unit === 'STD') {
+					var stopLossBounds = {
+						upper: bounds.mean + bounds.std * stopLoss.value,
+						lower: bounds.mean - bounds.std * stopLoss.value
+					};
 				}
 
 				if (!lastOpen) {
@@ -513,7 +579,8 @@ dataMiningServices.factory('StrategyProcessor',
 						value <= stopLossBounds.upper &&
 						value >= stopLossBounds.lower
 					);
-					if ((exceedUpperOpenBound || exceedLowerOpenBound) && insideStopLossBounds) {
+					if ((exceedUpperOpenBound || exceedLowerOpenBound)
+							&& insideStopLossBounds) {
 						lastOpen = {
 							type: 'OPEN',
 							stock1Action: exceedUpperOpenBound? 'SHORT' : 'LONG',
@@ -548,7 +615,7 @@ dataMiningServices.factory('StrategyProcessor',
 							lastOpen = null;
 						}
 
-					} else if (canForceClose && i == targetDataset.length - 1) {
+					} else if (options.forceClose && i == targetDataset.length - 1) {
 						actions.push(angular.extend({}, row, {type: 'FORCE_CLOSE'}));
 					}
 
@@ -833,21 +900,10 @@ dataMiningServices.factory('CointegrationStrategyProcessor', [
 			});
 		};
 
-		var getBounds = function(lastBounds, strategy, currentRow, lastOpenAction,
-				historicalDataset, targetDataset, valuePropertyName,
-				boundWeightRules) {
-			var upToDateDataset = targetDataset.filter(function(row) {
-				return row.day <= currentRow.day
-			});
-			upToDateDataset = historicalDataset.concat(upToDateDataset);
-			if (boundWeightRules) {
-				var weightFunc = function(row, i, dataset) {
-					var rule = boundWeightRules.find(function(rule) {
-						return dataset.length - i <= rule.previousDaysCount;
-					});
-					return rule? rule.weight : 0;
-				};
-				var weights = upToDateDataset.map(weightFunc);
+		var getBounds = function(lastBounds, strategy, lastOpenAction,
+				upToDateDataset, historicalDataset, targetDataset,
+				valuePropertyName, weights) {
+			if (weights) {
 				var std = StatHelper.weightedStd(upToDateDataset, valuePropertyName, weights);
 				var mean = StatHelper.weightedMean(upToDateDataset, valuePropertyName, weights);
 			} else {
@@ -869,17 +925,22 @@ dataMiningServices.factory('CointegrationStrategyProcessor', [
 			return bounds;
 		};
 
-		var updateDataset = function(historicalDataset, targetDataset,
-				currentRow, currentRowIndex, latestNamePostFix) {
-			var dataset = historicalDataset
-				.slice(currentRowIndex + 1)
-				.concat(targetDataset.slice(0, currentRowIndex + 1));
-			var logPrices = dataset.map(function(row) {
-				return [Math.log(row.stock2Price), Math.log(row.stock1Price)];
+		var updateDataset = function(currentRow, upToDateDataset, weights,
+				latestNamePostFix) {
+			var logPrices = upToDateDataset.map(function(row) {
+				return [
+					Math.log(row.stock2AdjClose),
+					Math.log(row.stock1AdjClose)
+				];
 			});
-			var regression = $window.ss.linearRegression(logPrices);
+			var regression = weights
+				? $window.ss.weightedLinearRegession(logPrices, weights)
+				: $window.ss.linearRegression(logPrices);
+			// var rSquared = weights
+			// 	?
+
 			DatasetPreparator.makeLogPriceCointegration(
-				dataset,
+				upToDateDataset,
 				regression,
 				latestNamePostFix
 			);
@@ -890,9 +951,7 @@ dataMiningServices.factory('CointegrationStrategyProcessor', [
 		var useUpdateBoundsWhenClose = function() {
 			var _getBounds = getBounds;
 			return angular.extend({}, this, {
-				getBounds: function(lastBounds, strategy, currentRow, lastOpenAction,
-						historicalDataset, targetDataset, valuePropertyName,
-						boundWeightRules) {
+				getBounds: function(lastBounds, strategy, lastOpenAction) {
 					if (lastOpenAction) return lastBounds;
 					return _getBounds.apply(this, arguments);
 				}
@@ -906,13 +965,13 @@ dataMiningServices.factory('CointegrationStrategyProcessor', [
 		var useNoUpdateBounds = function() {
 			var _getBounds = getBounds;
 			return angular.extend({}, this, {
-				getBounds: function(lastBounds, strategy, currentRow, lastOpenAction,
-						historicalDataset, targetDataset, valuePropertyName,
-						boundWeightRules) {
+				getBounds: function(lastBounds, strategy, lastOpenAction,
+						upToDateDataset, historicalDataset, targetDataset,
+						valuePropertyName, weights) {
 					if (lastBounds) return lastBounds;
-					return _getBounds.call(this, lastBounds, strategy, currentRow,
-						lastOpenAction, historicalDataset, [], valuePropertyName,
-						boundWeightRules);
+					return _getBounds.call(this, lastBounds, strategy, lastOpenAction,
+						historicalDataset, historicalDataset, [],
+						valuePropertyName, weights);
 				}
 			});
 		};

@@ -16,6 +16,7 @@
   <script src="./lib/bootstrap-material-design/js/ripples.min.js"></script>
   <script src="./lib/papaparse.min.js"></script>
   <script src="./lib/simple_statistic.min.js"></script>
+  <script src="./lib/simple_statistic_extend.js"></script>
   <script src="./lib/angular-1.4.x.min.js"></script>
 
   <script src="https://www.google.com/jsapi"></script>
@@ -62,50 +63,69 @@
           </div>
         </div>
 
-        <div class="table-x-scroller-wrapper" ng-show="showBoundWeightRules">
-          <table class="table table-bounds-weights">
-            <tr>
-              <td>Previous Days</td>
-              <td ng-repeat="rule in boundWeightRules">
-                <input type="text" class="form-control" ng-model="rule.previousDaysCount">
-              </td>
-              <td rowspan="2"
-                  style="cursor: pointer;"
-                  ng-click="addBoundWeightRule()">
-                <span>➕</span>
-              </td>
-            </tr>
-            <tr>
-              <td>Weight</td>
-              <td ng-repeat="rule in boundWeightRules">
-                <input type="text"class="form-control" ng-model="rule.weight">
-              </td>
-            </tr>
-          </table>
-        </div>
+        <div class="extra-options">
+          <div class="checkbox checkbox-primary">
+            <label>
+              <input type="checkbox" ng-model="useDynamicBounds">
+              <span class="checkbox-desc">Use Dynamic Thresholds</span>
+            </label>
+          </div>
+          <div class="table-x-scroller-wrapper" ng-show="useDynamicBounds">
+            <table class="table table-bounds-weights">
+              <tr>
+                <td>Previous Days</td>
+                <td ng-repeat="rule in boundWeightRules">
+                  <input type="text" class="form-control" ng-model="rule.previousDaysCount">
+                </td>
+                <td rowspan="2"
+                    style="cursor: pointer;"
+                    ng-click="addBoundWeightRule()">
+                  <span>➕</span>
+                </td>
+              </tr>
+              <tr>
+                <td>Weight</td>
+                <td ng-repeat="rule in boundWeightRules">
+                  <input type="text"class="form-control" ng-model="rule.weight">
+                </td>
+              </tr>
+            </table>
+          </div>
 
-       <!--  <div class="table-x-scroller-wrapper"
-             ng-show="showDependentVariableWeightRules">
-          <table class="table table-bounds-weights">
-            <tr>
-              <td>Previous Days</td>
-              <td ng-repeat="rule in dependentVariableWeightRules">
-                <input type="text" class="form-control" ng-model="rule.previousDaysCount">
-              </td>
-              <td rowspan="2"
-                  style="cursor: pointer;"
-                  ng-click="addDependentVariableWeight()">
-                <span>➕</span>
-              </td>
-            </tr>
-            <tr>
-              <td>Weight</td>
-              <td ng-repeat="rule in dependentVariableWeightRules">
-                <input type="text"class="form-control" ng-model="rule.weight">
-              </td>
-            </tr>
-          </table>
-        </div> -->
+          <div class="checkbox checkbox-primary">
+            <label>
+              <input type="checkbox"
+                     ng-model="useDynamicDependentVariable">
+              <span class="checkbox-desc">Use Dynamic Dependent Series</span>
+            </label>
+          </div>
+          <div class="table-x-scroller-wrapper"
+               ng-show="useDynamicDependentVariable">
+            <table class="table table-bounds-weights">
+              <tr>
+                <td>Previous Days</td>
+                <td ng-repeat="rule in dependentVariableWeightRules">
+                  <input type="text" class="form-control" ng-model="rule.previousDaysCount">
+                </td>
+                <td rowspan="2"
+                    style="cursor: pointer;"
+                    ng-click="addDependentVariableWeight()">
+                  <span>➕</span>
+                </td>
+              </tr>
+              <tr>
+                <td>Weight</td>
+                <td ng-repeat="rule in dependentVariableWeightRules">
+                  <input type="text"class="form-control" ng-model="rule.weight">
+                </td>
+              </tr>
+            </table>
+          </div>
+          <!-- <select class="form-control"
+            ng-disabled="!useDynamicDependentVariable && !useDynamicBounds"
+            ng-model="updateTiming"
+            ng-options="timing as timing.text for timing in updateTimingChoices"></select> -->
+        </div>
 
         <select class="form-control"
             ng-class="{placeholder: !stockCategory.stocks}"
@@ -114,7 +134,7 @@
         <textarea class="form-control" ng-model="stockList"></textarea>
         <button class="btn btn-material-pink-500"
             ng-disabled="!startDate || !endDate || !pairingRule || !stockList"
-            ng-click="parseBoundWeightRules(); crawl();">
+            ng-click="parseBoundWeightRules(); parseDependentVariableWeightRules(); crawl();">
           Crawl
         </button>
       </div>

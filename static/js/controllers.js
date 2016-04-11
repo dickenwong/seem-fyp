@@ -64,10 +64,6 @@ dataMiningControllers.controller('PairFinderCtrl',
             });
         $scope.stockCategories = ([{name: 'Stock Category'}]).concat(StockCategories);
 
-        $scope.$watch('pairingRule', function(newVal, oldVal) {
-            var rule = PairCalculator[newVal];
-            $scope.showBoundWeightRules = rule && rule.strategy.useBoundWeighting;
-        });
         $scope.$watch('stockCategory', function(newVal, oldVal) {
             if (newVal) $scope.stockList = newVal.stocks;
         });
@@ -496,8 +492,11 @@ dataMiningControllers.controller('PairFinderCtrl',
                 var variableName = rule.strategy.dependentVariableName;
                 var options = {
                     transactionCost: $scope.transactionCost,
-                    boundWeightRules: rule.strategy.useBoundWeighting
-                        ? $scope.boundWeightRules : null
+                    useDynamicBounds: $scope.useDynamicBounds,
+                    useDynamicDependentVariable: $scope.useDynamicDependentVariable,
+                    dependentVariableWeightRules: $scope.dependentVariableWeightRules,
+                    boundWeightRules: $scope.boundWeightRules,
+                    updateTiming: 'EVERYDAY'
                 };
                 $scope.strategiesResults = StrategyProcessor.doAllStrategies(
                     rule.strategy.processor,
@@ -541,8 +540,11 @@ dataMiningControllers.controller('PairFinderCtrl',
                     var rule = PairCalculator[$scope.pairingRule];
                     var options = {
                         transactionCost: $scope.transactionCost,
-                        boundWeightRules: rule.strategy.useBoundWeighting
-                            ? $scope.boundWeightRules : null
+                        useDynamicBounds: $scope.useDynamicBounds,
+                        useDynamicDependentVariable: $scope.useDynamicDependentVariable,
+                        dependentVariableWeightRules: $scope.dependentVariableWeightRules,
+                        boundWeightRules: $scope.boundWeightRules,
+                        updateTiming: 'EVERYDAY'
                     };
                     strategyTests.push({
                         top: i,
@@ -777,8 +779,11 @@ dataMiningControllers.controller('PairFinderCtrl',
                     var rule = PairCalculator[$scope.pairingRule];
                     var options = {
                         transactionCost: $scope.transactionCost,
-                        boundWeightRules: rule.strategy.useBoundWeighting
-                            ? $scope.boundWeightRules : null
+                        useDynamicBounds: $scope.useDynamicBounds,
+                        useDynamicDependentVariable: $scope.useDynamicDependentVariable,
+                        dependentVariableWeightRules: $scope.dependentVariableWeightRules,
+                        boundWeightRules: $scope.boundWeightRules,
+                        updateTiming: 'EVERYDAY'
                     };
                     row.strategyResult = StrategyProcessor.doAllStrategies(
                         rule.strategy.processor,
@@ -804,7 +809,13 @@ dataMiningControllers.controller('PairFinderCtrl',
         =            Weights Table for Thresholds            =
         ====================================================*/
 
-        $scope.showBoundWeightRules = false;
+        $scope.updateTimingChoices = [
+            {id: 'EVERYDAY', 'text': 'Update Everyday'},
+            {id: 'WHEN_CLOSED', 'text': 'Update When Closed'}
+        ];
+        $scope.updateTiming = $scope.updateTimingChoices[0];
+
+        $scope.useDynamicBounds = false;
         $scope.boundWeightRules = [
             {previousDaysCount: 200, weight: 2},
             {previousDaysCount: 300, weight: 1}
@@ -819,14 +830,20 @@ dataMiningControllers.controller('PairFinderCtrl',
                 .filter(function(rule) {
                     rule.previousDaysCount = toNumber(rule.previousDaysCount);
                     rule.weight = toNumber(rule.weight);
-                    return !(isNaN(rule.previousDaysCount) || isNaN(rule.weight));
+                    return (
+                      (!isNaN(rule.previousDaysCount) || rule.previousDaysCount === '#history') &&
+                      (!isNaN(rule.weight) || rule.weight === '#history')
+                    );
                 })
                 .sort(function(rule1, rule2) {
+                    if (rule1.previousDaysCount === '#history') return 1;
+                    if (rule2.previousDaysCount === '#history') return -1;
                     return rule1.previousDaysCount - rule2.previousDaysCount;
                 });
             return rules;
 
             function toNumber(text) {
+                if (/^(#his|#history)$/i.test(text)) return '#history';
                 if (/^\s*$/.test(text)) return NaN;
                 if (/^\s*(inf|infinity)\s*$/i.test(text)) return Infinity;
                 return Number(text);
@@ -834,7 +851,7 @@ dataMiningControllers.controller('PairFinderCtrl',
         };
 
         $scope.parseBoundWeightRules = function() {
-            if (!$scope.showBoundWeightRules) return;
+            if (!$scope.useDynamicBounds) return;
             $scope.boundWeightRules = _parseRules($scope.boundWeightRules);
         };
 
@@ -844,10 +861,9 @@ dataMiningControllers.controller('PairFinderCtrl',
         =        Weights Table for Dependent Variable Recalibration        =
         ==================================================================*/
 
-        $scope.showDependentVariableWeightRules = true;
-
+        $scope.useDynamicDependentVariable = false;
         $scope.dependentVariableWeightRules = [
-            {previousDaysCount: Infinity, weight: 1}
+            {previousDaysCount: '#history', weight: 1}
         ];
 
         $scope.addDependentVariableWeight = function() {
@@ -855,8 +871,10 @@ dataMiningControllers.controller('PairFinderCtrl',
         };
 
         $scope.parseDependentVariableWeightRules = function() {
-            if (!$scope.showBoundWeightRules) return;
-            $scope.boundWeightRules = _parseRules($scope.boundWeightRules);
+            if (!$scope.useDynamicDependentVariable) return;
+            $scope.dependentVariableWeightRules = _parseRules(
+                $scope.dependentVariableWeightRules
+            );
         };
 
         /*=  End of Weights Table for Dependent Variable Recalibration   =*/
