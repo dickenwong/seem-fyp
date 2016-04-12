@@ -430,8 +430,8 @@ dataMiningServices.factory('DatasetPreparator',
 			// // y = b + mx + e (let x = stock1, y = stock2)
 			// var logPrices = dataset.map(function(row) {
 			// 	return [
-			//		Math.log(row.stock1Price),
-			//		Math.log(row.stock2Price)
+			//		row.stock1Price,
+			//		row.stock2Price
 			//	];
 			// });
 			// var regression = ss.linearRegression(logPrices);
@@ -489,7 +489,7 @@ dataMiningServices.factory('StrategyProcessor',
 			/*===========================
 			=            DEV            =
 			===========================*/
-			options.stopLoss = {unit: 'STD', value: 3};
+			options.stopLoss = {unit: 'STD', value: 4};
 			options.forceClose = false;
 			// options.dependentVariableWeightRules = [
 			// 	{previousDaysCount: '#history', weight: 1}
@@ -593,7 +593,8 @@ dataMiningServices.factory('StrategyProcessor',
 					}
 				} else {
 					if (row.stock1Dividend || row.stock2Dividend) {
-						actions.push(angular.extend({}, row, {type: 'DIVIDEND'}));
+						// Deprecated due to using adjusted close price
+						// actions.push(angular.extend({}, row, {type: 'DIVIDEND'}));
 					}
 					var reachCloseBound = (
 						lastOpen.stock1Action == 'SHORT' && value <= bounds.close.upper ||
@@ -780,20 +781,20 @@ dataMiningServices.factory('StrategyProcessor',
 			var isLongingStock1 = openAction.stock1Action === 'LONG';
 			var isLongingStock2 = openAction.stock2Action === 'LONG';
 			var openProfit = (
-				openAction.stock1Price * openAction.stock1Share * (isLongingStock1? -1 : 1) +
-				openAction.stock2Price * openAction.stock2Share * (isLongingStock2? -1 : 1)
+				openAction.stock1AdjClose * openAction.stock1Share * (isLongingStock1? -1 : 1) +
+				openAction.stock2AdjClose * openAction.stock2Share * (isLongingStock2? -1 : 1)
 			);
 			var closeProfit = (
-				closeAction.stock1Price * openAction.stock1Share * (isLongingStock1? 1 : -1) +
-				closeAction.stock2Price * openAction.stock2Share * (isLongingStock2? 1 : -1)
+				closeAction.stock1AdjClose * openAction.stock1Share * (isLongingStock1? 1 : -1) +
+				closeAction.stock2AdjClose * openAction.stock2Share * (isLongingStock2? 1 : -1)
 			);
 			return closeProfit + openProfit;
 		};
 
 		var _getTransactionCost = function(tCostPercent, openAction, closeAction) {
 			if (!closeAction) closeAction = openAction;
-			var stock1Cost = openAction.stock1Share * closeAction.stock1Price * tCostPercent;
-			var stock2Cost = openAction.stock2Share * closeAction.stock2Price * tCostPercent;
+			var stock1Cost = openAction.stock1Share * closeAction.stock1AdjClose * tCostPercent;
+			var stock2Cost = openAction.stock2Share * closeAction.stock2AdjClose * tCostPercent;
 			return stock1Cost + stock2Cost;
 		};
 
@@ -815,10 +816,10 @@ dataMiningServices.factory('StrategyProcessor',
 			if (openAction.stock2Share < 0) isLongingStock2 = isLongingStock2? 'SHORT' : 'LONG';
 			if (isLongingStock1 === isLongingStock2) console.log('This pair has same Action');
 
-			var stock1OpenAbsProfit = Math.abs(openAction.stock1Price * openAction.stock1Share);
-			var stock2OpenAbsProfit = Math.abs(openAction.stock2Price * openAction.stock2Share);
-			var stock1CloseAbsProfit = Math.abs(closeAction.stock1Price * openAction.stock1Share);
-			var stock2CloseAbsProfit = Math.abs(closeAction.stock2Price * openAction.stock2Share);
+			var stock1OpenAbsProfit = Math.abs(openAction.stock1AdjClose * openAction.stock1Share);
+			var stock2OpenAbsProfit = Math.abs(openAction.stock2AdjClose * openAction.stock2Share);
+			var stock1CloseAbsProfit = Math.abs(closeAction.stock1AdjClose * openAction.stock1Share);
+			var stock2CloseAbsProfit = Math.abs(closeAction.stock2AdjClose * openAction.stock2Share);
 
 			var longCost = (
 				(isLongingStock1? stock1OpenAbsProfit : stock1CloseAbsProfit) +
