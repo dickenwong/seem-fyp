@@ -12,9 +12,7 @@ dataMiningApp
 
 
   .filter('strategyStockAction', ['$filter', function ($filter) {
-    return filter;
-
-    function filter(action, stockNumber) {
+    return function filter(action, stockNumber) {
       if (action.type === 'DIVIDEND') {
         var dividend = _param('Dividend');
         if (dividend) return '(' + dividend + ' per share)';
@@ -34,4 +32,28 @@ dataMiningApp
       };
     };
 
+  }])
+
+  .filter('maxProfitPercent', ['$filter', function ($filter) {
+    return function filter(strategiesResult) {
+      if (!strategiesResult) return;
+      var result = strategiesResult.reduce(function(prev, current) {
+        var prevPercent = prev.result.forceClosedProfitPercent;
+        var currentPercent = current.result.forceClosedProfitPercent;
+        return prevPercent > currentPercent? prev : current;
+      });
+      return $filter('percentage')(result.result.forceClosedProfitPercent, 2) +
+        ' (' + result.strategy.id + ')';
+    };
+  }])
+
+  .filter('medianProfitPercent', ['$filter', '$window', function ($filter, $window) {
+    return function filter(strategiesResult) {
+      if (!strategiesResult) return;
+      var profitPercents = strategiesResult.map(function(result) {
+        return result.result.forceClosedProfitPercent;
+      });
+      var median = $window.ss.median(profitPercents);
+      return $filter('percentage')(median, 2);
+    };
   }]);

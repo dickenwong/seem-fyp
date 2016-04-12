@@ -18,7 +18,8 @@
 	text-align: left;
 	font-size: 13px;
 }
-.input-wrapper select.form-control.placeholder {
+.input-wrapper select.form-control.placeholder,
+.input-wrapper select.form-control[disabled] {
 	color: #BBB;
 }
 .input-wrapper .checkbox {
@@ -102,12 +103,15 @@ input.row-checkbox {
 	width: 100%;
 	table-layout: fixed;
 }
-.strategy-result-history-modal th,
-.strategy-result-history-modal td {
-	/*white-space: nowrap;*/
+.strategy-result-history-modal .table {
+	font-size: 13px;
+}
+.strategy-result-history-modal .table td {
+	white-space: nowrap;
 }
 .table-x-scroller-wrapper {
 	overflow-x: scroll;
+    overflow-y: auto;
 }
 .strategy-result {
 	font-size: 12px;
@@ -138,7 +142,12 @@ input.row-checkbox {
 }
 .extra-options {
 	margin: 5px 0 20px;
-	padding: 5px 0 20px;
+	padding: 5px 0 10px;
 	border-top: 1px solid #d2d2d2;
 	border-bottom: 1px solid #d2d2d2;
+}
+.extra-options select.form-control {
+	width: 80%;
+	margin: 10px auto 10px;
+	font-size: 13px;
 }

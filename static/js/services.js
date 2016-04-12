@@ -551,7 +551,7 @@ dataMiningServices.factory('StrategyProcessor',
 						boundWeights
 					);
 				} else {
-					var bounds = boundsList[i-1];
+					var bounds = boundsList[i] = boundsList[i-1];
 				}
 
 				var value = row[valuePropertyName];
@@ -874,7 +874,8 @@ dataMiningServices.factory('PriceRatioStrategyProcessor', [
 
 		return {
 			getStockShares: getStockShares,
-			getBounds: getBounds
+			getBounds: getBounds,
+			updateDataset: angular.noop
 		};
 	}
 ]);
@@ -1082,65 +1083,75 @@ dataMiningServices.value('StockCategories', [
 	}
 ]);
 
-dataMiningServices.value('StrategyList', [{
-	    "id": "A3",
-	    "name": "Open at 2 sd, close at 1.5 sd",
-	    "open": {"unit": "std", "value": 2},
-	    "close": {"unit": "std", "value": 1.5},
-	    "transaction": {"value": 1, "accumalated": false}
-	}, {
+dataMiningServices.value('StrategyList', [
+	// {
+	//     "id": "A3",
+	//     "name": "Open at 2 sd, close at 1.5 sd",
+	//     "open": { "unit": "std", "value": 2 },
+	//     "close": { "unit": "std", "value": 1.5 },
+	//     "transaction": { "value": 1, "accumalated": false }
+	// },
+	{
 	    "id": "A2",
 	    "name": "Open at 2 sd, close at 1 sd",
-	    "open": {"unit": "std", "value": 2},
-	    "close": {"unit": "std", "value": 1},
-	    "transaction": {"value": 1, "accumalated": false}
-	}, {
-	    "id": "A1",
-	    "name": "Open at 2 sd, close at 0.5 sd",
-	    "open": {"unit": "std", "value": 2},
-	    "close": {"unit": "std", "value": 0.5},
-	    "transaction": {"value": 1, "accumalated": false}
-	}, {
+	    "open": { "unit": "std", "value": 2 },
+	    "close": { "unit": "std", "value": 1 },
+	    "transaction": { "value": 1, "accumalated": false }
+	},
+	// {
+	//     "id": "A1",
+	//     "name": "Open at 2 sd, close at 0.5 sd",
+	//     "open": { "unit": "std", "value": 2 },
+	//     "close": { "unit": "std", "value": 0.5 },
+	//     "transaction": { "value": 1, "accumalated": false }
+	// },
+	{
 	    "id": "A0",
 	    "name": "Open at 2 sd, close at 0 sd",
-	    "open": {"unit": "std", "value": 2},
-	    "close": {"unit": "std", "value": 0},
-	    "transaction": {"value": 1, "accumalated": false}
-	}, {
-	    "id": "B2",
-	    "name": "Open at 1.5 sd, close at 1 sd",
-	    "open": {"unit": "std", "value": 1.5},
-	    "close": {"unit": "std", "value": 1},
-	    "transaction": {"value": 1, "accumalated": false}
-	}, {
-	    "id": "B1",
-	    "name": "Open at 1.5 sd, close at 0.5 sd",
-	    "open": {"unit": "std", "value": 1.5},
-	    "close": {"unit": "std", "value": 0.5},
-	    "transaction": {"value": 1, "accumalated": false}
-	}, {
+	    "open": { "unit": "std", "value": 2 },
+	    "close": { "unit": "std", "value": 0 },
+	    "transaction": { "value": 1, "accumalated": false }
+	},
+	// {
+	//     "id": "B2",
+	//     "name": "Open at 1.5 sd, close at 1 sd",
+	//     "open": { "unit": "std", "value": 1.5 },
+	//     "close": { "unit": "std", "value": 1 },
+	//     "transaction": { "value": 1, "accumalated": false }
+	// },
+	// {
+	//     "id": "B1",
+	//     "name": "Open at 1.5 sd, close at 0.5 sd",
+	//     "open": { "unit": "std", "value": 1.5 },
+	//     "close": { "unit": "std", "value": 0.5 },
+	//     "transaction": { "value": 1, "accumalated": false }
+	// },
+	{
 	    "id": "B0",
 	    "name": "Open at 1.5 sd, close at 0 sd",
-	    "open": {"unit": "std", "value": 1.5},
-	    "close": {"unit": "std", "value": 0},
-	    "transaction": {"value": 1, "accumalated": false}
-	}, {
-	    "id": "C1",
-	    "name": "Open at 1 sd, close at 0.5 sd",
-	    "open": {"unit": "std", "value": 1},
-	    "close": {"unit": "std", "value": 0.5},
-	    "transaction": {"value": 1, "accumalated": false}
-	}, {
+	    "open": { "unit": "std", "value": 1.5 },
+	    "close": { "unit": "std", "value": 0 },
+	    "transaction": { "value": 1, "accumalated": false }
+	},
+	// {
+	//     "id": "C1",
+	//     "name": "Open at 1 sd, close at 0.5 sd",
+	//     "open": { "unit": "std", "value": 1 },
+	//     "close": { "unit": "std", "value": 0.5 },
+	//     "transaction": { "value": 1, "accumalated": false }
+	// },
+	{
 	    "id": "C0",
 	    "name": "Open at 1 sd, close at 0 sd",
-	    "open": {"unit": "std", "value": 1},
-	    "close": {"unit": "std", "value": 0},
-	    "transaction": {"value": 1, "accumalated": false}
-	}, {
+	    "open": { "unit": "std", "value": 1 },
+	    "close": { "unit": "std", "value": 0 },
+	    "transaction": { "value": 1, "accumalated": false }
+	},
+	{
 	    "id": "D0",
 	    "name": "Open at 0.5 sd, close at 0 sd",
-	    "open": {"unit": "std", "value": 0.5},
-	    "close": {"unit": "std", "value": 0},
-	    "transaction": {"value": 1, "accumalated": false}
+	    "open": { "unit": "std", "value": 0.5 },
+	    "close": { "unit": "std", "value": 0 },
+	    "transaction": { "value": 1, "accumalated": false }
 	}
 ]);

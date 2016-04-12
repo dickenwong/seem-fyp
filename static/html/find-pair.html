@@ -121,10 +121,10 @@
               </tr>
             </table>
           </div>
-          <!-- <select class="form-control"
+          <select class="form-control"
             ng-disabled="!useDynamicDependentVariable && !useDynamicBounds"
             ng-model="updateTiming"
-            ng-options="timing as timing.text for timing in updateTimingChoices"></select> -->
+            ng-options="timing.id as timing.text for timing in updateTimingChoices"></select>
         </div>
 
         <select class="form-control"
@@ -147,7 +147,7 @@
       <div class="input-wrapper text-center" ng-show="scores.length">
         <button class="btn btn-strategy-summary"
                 ng-class="isAnyRowDataSelected()? 'btn-material-light-blue-500' : 'btn-material-orange-600'"
-                ng-click="isAnyRowDataSelected()? getStrategyResults() : getStrategySummary()"
+                ng-click="isAnyRowDataSelected()? getStrategyResultOverview() : getStrategySummary()"
                 ng-bind="isAnyRowDataSelected()? 'Strategy Results' : 'Strategy Summary'">
         </button>
       </div>
@@ -249,25 +249,33 @@
           Profits are deducted Transaction Cost and Trades are force-closed in the end.<br>
         </p>
         <div class="radio radio-primary strategy-time-frame-group text-center">
-          <!-- <label>
-            <input type="radio" name="strategyTimeFrame">
-            Historical
+          <label>
+            <input type="radio" name="strategyTimeFrame" ng-model="strategyResultOverviewTimeFrame" value="SIMULATION">
+            Simulation
           </label>
           <label>
-            <input type="radio" name="strategyTimeFrame">
-            Simulation
-          </label> -->
+            <input type="radio" name="strategyTimeFrame" ng-model="strategyResultOverviewTimeFrame" value="HISTORICAL">
+            Historical (Will cause long wait)
+          </label>
+        </div>
+        <div class="input-wrapper" ng-show="strategyResultOverviewTimeFrame === 'SIMULATION'">
+          <input type="text" class="form-control input-date" ng-model="targetStartDate" placeholder="From (YYYY-MM-DD)">
+          <input type="text" class="form-control input-date" ng-model="targetEndDate" placeholder="To (YYYY-MM-DD)">
         </div>
         <div class="table-x-scroller-wrapper">
           <table class="table table-striped table-hover">
             <caption>
-              <h3>Pairs' Historical Strategy Results</h3>
+              <h3 ng-bind="'Pairs\' ' + (strategyResultOverviewTimeFrame === 'SIMULATION'? 'Simulation': 'Historical') + ' Strategy Results'"></h3>
             </caption>
             <thead>
               <tr>
                 <th style="" rowspan="2">Stock 1</th>
                 <th style="" rowspan="2">Stock 2</th>
                 <th style="" rowspan="2">Score</th>
+                <th style="" rowspan="2">Max Profit %</th>
+                <th style="border-right: 2px solid #d2d2d2; white-space: nowrap;" rowspan="2">
+                  Median Profit %
+                </th>
                 <th style="border: none;" ng-repeat="strategy in strategyList" ng-bind="strategy.id" colspan="2"></th>
               </tr>
               <tr>
@@ -276,13 +284,16 @@
               </tr>
             </thead>
             <tbody>
-              <tr ng-repeat="pair in strategyHistoricalResults"
+              <tr ng-repeat="pair in strategyResultOverviewPairs"
                   ng-click="clickRowData(pair)"
                   style="cursor: pointer;">
                 <td ng-bind="pair.stock1"></td>
                 <td ng-bind="pair.stock2"></td>
                 <td ng-bind="pair.score | number: 4"></td>
-                <td ng-repeat-start="result in pair.strategyResult" ng-bind="result.result.openCounts"></td>
+                <td ng-bind="pair[strategyResultOverviewPropertyName] | maxProfitPercent"></td>
+                <td ng-bind="pair[strategyResultOverviewPropertyName] | medianProfitPercent" style="border-right: 2px solid #d2d2d2"></td>
+                <td ng-repeat-start="result in pair[strategyResultOverviewPropertyName]"
+                    ng-bind="result.result.openCounts"></td>
                 <td ng-repeat-end ng-bind="result.result.forceClosedProfitPercent | percentage: 2"></td>
 
                 <!-- <td ng-bind="(result.totalTop3Profit / 3) | percentage: 2"></td>

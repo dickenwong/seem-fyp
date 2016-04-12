@@ -474,6 +474,38 @@ dataMiningControllers.controller('PairFinderCtrl',
             });
         };
 
+        var _doAllStrategies = function(stock1, stock2, targetStartDate, targetEndDate, historicalDataset) {
+            var promise = _prepareStrategyDataset(
+                stock1,
+                stock2,
+                targetStartDate,
+                targetEndDate,
+                historicalDataset
+            ).then(function (params) {
+                var rule = PairCalculator[$scope.pairingRule];
+                var options = {
+                    transactionCost: $scope.transactionCost,
+                    useDynamicBounds: $scope.useDynamicBounds,
+                    useDynamicDependentVariable: $scope.useDynamicDependentVariable,
+                    dependentVariableWeightRules: $scope.dependentVariableWeightRules,
+                    boundWeightRules: $scope.boundWeightRules,
+                    updateTiming: $scope.updateTiming
+                };
+                var strategiesResults = StrategyProcessor.doAllStrategies(
+                    rule.strategy.processor,
+                    params.historicalDataset,
+                    params.targetDataset,
+                    rule.strategy.dependentVariableName,
+                    options
+                );
+                return {
+                    params: params,
+                    strategiesResults: strategiesResults
+                };
+            });
+            return promise;
+        };
+
         $scope.targetStartDate = '2014-01-01';
         $scope.targetEndDate = '2015-12-31';
         $scope.doAllStrategy = function() {
@@ -481,36 +513,23 @@ dataMiningControllers.controller('PairFinderCtrl',
                 $scope.pairDataset) {
                 return;
             }
-            _prepareStrategyDataset(
+            _doAllStrategies(
                 $scope.pair.stock1,
                 $scope.pair.stock2,
                 $scope.targetStartDate,
                 $scope.targetEndDate,
                 $scope.pair.dataset
-            ).then(function (params) {
+            ).then(function(resolved) {
                 var rule = PairCalculator[$scope.pairingRule];
-                var variableName = rule.strategy.dependentVariableName;
-                var options = {
-                    transactionCost: $scope.transactionCost,
-                    useDynamicBounds: $scope.useDynamicBounds,
-                    useDynamicDependentVariable: $scope.useDynamicDependentVariable,
-                    dependentVariableWeightRules: $scope.dependentVariableWeightRules,
-                    boundWeightRules: $scope.boundWeightRules,
-                    updateTiming: 'EVERYDAY'
-                };
-                $scope.strategiesResults = StrategyProcessor.doAllStrategies(
-                    rule.strategy.processor,
-                    params.historicalDataset,
-                    params.targetDataset,
-                    variableName,
-                    options
-                );
-                var strategyA1Result = $scope.strategiesResults.find(function(strategyResult) {
+                var params = resolved.params;
+                var strategiesResults = resolved.strategiesResults;
+                var strategyA1Result = strategiesResults.find(function(strategyResult) {
                     return strategyResult.strategy.id === 'A2';
                 });
+                $scope.strategiesResults = strategiesResults;
                 $scope.strategyGraph = $scope.drawStrategyGraph(
                     strategyA1Result,
-                    variableName,
+                    rule.strategy.dependentVariableName,
                     null,
                     '.targetGraph',
                     function() {
@@ -530,32 +549,17 @@ dataMiningControllers.controller('PairFinderCtrl',
             var strategyTests = [];
             pairPool.forEach(function(pair, i) {
                 if (i >= numOfPair) return false;
-                var promise = _prepareStrategyDataset(
+                var promise = _doAllStrategies(
                     pair.stock1,
                     pair.stock2,
                     targetStartDate,
                     targetEndDate,
                     pair.dataset
-                ).then(function (params) {
-                    var rule = PairCalculator[$scope.pairingRule];
-                    var options = {
-                        transactionCost: $scope.transactionCost,
-                        useDynamicBounds: $scope.useDynamicBounds,
-                        useDynamicDependentVariable: $scope.useDynamicDependentVariable,
-                        dependentVariableWeightRules: $scope.dependentVariableWeightRules,
-                        boundWeightRules: $scope.boundWeightRules,
-                        updateTiming: 'EVERYDAY'
-                    };
+                ).then(function (resolved) {
                     strategyTests.push({
                         top: i,
                         pair: pair,
-                        results: StrategyProcessor.doAllStrategies(
-                            rule.strategy.processor,
-                            params.historicalDataset,
-                            params.targetDataset,
-                            rule.strategy.dependentVariableName,
-                            options
-                        )
+                        results: resolved.strategiesResults
                     });
                 });
                 promises.push(promise);
@@ -761,45 +765,53 @@ dataMiningControllers.controller('PairFinderCtrl',
         };
 
         $scope.strategyList = StrategyList;
+        $scope.strategyResultOverviewTimeFrame = 'SIMULATION';
 
-        $scope.getStrategyResults = function() {
-            $scope.strategyHistoricalResults = [];
-            angular.element('.strategy-result-history-modal').modal('show');
+        var _updateStrategyResultOverview = function(timeFrame, selectedRows) {
+            if (timeFrame === 'HISTORICAL') {
+                var startDate = $scope.startDate;
+                var endDate = $scope.endDate;
+                var resultPropertyName = 'strategiesHistoricalResult';
+            } else if (timeFrame === 'SIMULATION') {
+                var startDate = $scope.targetStartDate;
+                var endDate = $scope.targetEndDate;
+                var resultPropertyName = 'strategiesResult';
+            }
+            $scope.strategyResultOverviewPropertyName = resultPropertyName;
+            selectedRows
+                .filter(function(row) {return !row[resultPropertyName];})
+                .forEach(function(row) {
+                    _doAllStrategies(
+                        row.stock1,
+                        row.stock2,
+                        startDate,
+                        endDate,
+                        row.dataset
+                    ).then(function (resolved) {
+                        row[resultPropertyName] = resolved.strategiesResults;
+                    });
+                });
+        };
+
+        var _overviewListener = angular.noop;
+        $scope.getStrategyResultOverview = function() {
             var selectedRows = $scope.scores.filter(function(row) {
                 return row._selected;
             });
-            var promises = selectedRows.map(function(row) {
-                var promise = _prepareStrategyDataset(
-                    row.stock1,
-                    row.stock2,
-                    $scope.startDate,
-                    $scope.endDate,
-                    row.dataset
-                ).then(function (params) {
-                    var rule = PairCalculator[$scope.pairingRule];
-                    var options = {
-                        transactionCost: $scope.transactionCost,
-                        useDynamicBounds: $scope.useDynamicBounds,
-                        useDynamicDependentVariable: $scope.useDynamicDependentVariable,
-                        dependentVariableWeightRules: $scope.dependentVariableWeightRules,
-                        boundWeightRules: $scope.boundWeightRules,
-                        updateTiming: 'EVERYDAY'
-                    };
-                    row.strategyResult = StrategyProcessor.doAllStrategies(
-                        rule.strategy.processor,
-                        params.historicalDataset,
-                        params.targetDataset,
-                        rule.strategy.dependentVariableName,
-                        options
-                    );
-                    return row;
-                });
-                return promise;
+            selectedRows.forEach(function(row) {
+                delete row.strategiesHistoricalResult;
+                delete row.strategiesResult;
             });
-            return $q.all(promises).then(function(strategyResults) {
-                $scope.strategyHistoricalResults = strategyResults;
-                return strategyResults;
-            });
+            // var timeFrame = $scope.strategyResultOverviewTimeFrame;
+            _overviewListener();
+            _overviewListener = $scope.$watch(
+                'strategyResultOverviewTimeFrame',
+                function(newVal) {
+                    _updateStrategyResultOverview(newVal, selectedRows);
+                }
+            );
+            $scope.strategyResultOverviewPairs = selectedRows;
+            angular.element('.strategy-result-history-modal').modal('show');
         };
 
         /*=======  End of Row data selection  =======*/
@@ -813,7 +825,7 @@ dataMiningControllers.controller('PairFinderCtrl',
             {id: 'EVERYDAY', 'text': 'Update Everyday'},
             {id: 'WHEN_CLOSED', 'text': 'Update When Closed'}
         ];
-        $scope.updateTiming = $scope.updateTimingChoices[0];
+        $scope.updateTiming = 'EVERYDAY';
 
         $scope.useDynamicBounds = false;
         $scope.boundWeightRules = [
