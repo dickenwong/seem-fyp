@@ -429,7 +429,10 @@ dataMiningServices.factory('DatasetPreparator',
 			// /*----------  Subsection comment block  ----------*/
 			// // y = b + mx + e (let x = stock1, y = stock2)
 			// var logPrices = dataset.map(function(row) {
-			// 	return [Math.log(row.stock1Price), Math.log(row.stock2Price)];
+			// 	return [
+			//		Math.log(row.stock1Price),
+			//		Math.log(row.stock2Price)
+			//	];
 			// });
 			// var regression = ss.linearRegression(logPrices);
 			// dataset.forEach(function(row, i) {

@@ -218,7 +218,7 @@ dataMiningControllers.controller('PairFinderCtrl',
 
         $scope.clickRowData = function(score) {
             if (!score.dataset) {
-                $scope.openComparingPage(score.stock1, scorestock2);
+                $scope.openComparingPage(score.stock1, score.stock2);
                 return;
             }
             $scope.pair = score;
@@ -460,7 +460,12 @@ dataMiningControllers.controller('PairFinderCtrl',
                     targetDataset,
                     historicalResult? historicalResult.regression : null
                 );
-                console.log(stock1, stock2, (historicalResult? historicalResult.regression.m : ''));
+                console.log(
+                    stock1,
+                    stock2,
+                    (historicalResult? historicalResult.regression.m : ''),
+                    (historicalResult? historicalResult.regression.b : '')
+                );
                 return {
                     stock1: stock1,
                     stock2: stock2,
