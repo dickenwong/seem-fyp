@@ -536,9 +536,11 @@ dataMiningServices.factory('StrategyProcessor',
 					strategyProcessor.updateDataset(
 						row,
 						upToDateDataset,
+						historicalDataset,
+						targetDataset,
 						dependentVariableWeights,
 						latestNamePostFix
-					)
+					);
 				}
 
 				// Find Tradinig Thresholds
@@ -973,8 +975,8 @@ dataMiningServices.factory('CointegrationStrategyProcessor', [
 			return bounds;
 		};
 
-		var updateDataset = function(currentRow, upToDateDataset, weights,
-				latestNamePostFix) {
+		var updateDataset = function(currentRow, upToDateDataset, historicalDataset,
+				targetDataset, weights, latestNamePostFix) {
 			var logPrices = upToDateDataset.map(function(row) {
 				return [
 					Math.log(row.stock2AdjClose),
@@ -988,7 +990,7 @@ dataMiningServices.factory('CointegrationStrategyProcessor', [
 			// 	?
 
 			DatasetPreparator.makeLogPriceCointegration(
-				upToDateDataset,
+				historicalDataset.concat(targetDataset),
 				regression,
 				latestNamePostFix
 			);
