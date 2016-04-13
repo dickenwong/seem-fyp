@@ -68,7 +68,7 @@ dataMiningControllers.controller('PairFinderCtrl',
             if (newVal) $scope.stockList = newVal.stocks;
         });
 
-        $scope.startDate = '2010-01-01';
+        $scope.startDate = '2009-01-01';
         $scope.endDate = '2013-12-31';
         $scope.stockCategory = $scope.stockCategories[0];
 
@@ -252,7 +252,10 @@ dataMiningControllers.controller('PairFinderCtrl',
             height: 450,
             lineWidth: 1,
             vAxis: {format: '#.##'},
-            hAxis: {gridlines: {color: '#eee'}, title: 'Date'},
+            hAxis: {
+                gridlines: {color: '#eee'},
+                title: 'Date'
+            },
             crosshair: { trigger: 'focus', opacity: '0.5'},
             tooltip: { trigger: 'focus' },
             selectionMode: 'multiple',
