@@ -489,7 +489,7 @@ dataMiningServices.factory('StrategyProcessor',
 			/*===========================
 			=            DEV            =
 			===========================*/
-			options.stopLoss = {unit: 'STD', value: 4};
+			options.stopLoss = {unit: 'DAY', value: 200};
 			options.forceClose = false;
 			// options.dependentVariableWeightRules = [
 			// 	{previousDaysCount: '#history', weight: 1}
@@ -571,16 +571,35 @@ dataMiningServices.factory('StrategyProcessor',
 				} else if (stopLoss.unit === 'STD') {
 					// var lastAction = actions[actions.length - 1];
 					// if (lastAction && lastAction.type === 'STOP_LOSS') {
-					// 	var stopLossBounds = {
-					// 		upper: bounds.mean + bounds.std * (stopLoss.value - 1),
-					// 		lower: bounds.mean - bounds.std * (stopLoss.value - 1)
-					// 	};
+						// var stopLossBounds = {
+							// upper: bounds.mean + bounds.std * (stopLoss.value - 1),
+							// lower: bounds.mean - bounds.std * (stopLoss.value - 1)
+						// };
 					// } else {
 						var stopLossBounds = {
 							upper: bounds.mean + bounds.std * stopLoss.value,
 							lower: bounds.mean - bounds.std * stopLoss.value
 						};
 					// }
+				} else if (stopLoss.unit === 'DAY') {
+					var lastAction = actions[actions.length - 1];
+					if (lastOpen) {
+						// console.log(row.day - lastOpen.lastAction)
+						var stopLossBounds = row.day - lastAction.day >= stopLoss.value
+							? {upper: -Infinity, lower: Infinity}
+							: {upper: Infinity, lower: -Infinity};
+					} else if (lastAction && lastAction.type === 'STOP_LOSS') {
+						var zeroCrossed = targetDataset.some(function(row, i) {
+							if (i == 0) return false;
+							if (row.day < lastAction.day) return false;
+							return value * targetDataset[i-1][valuePropertyName] < 0;
+						});
+						var stopLossBounds = zeroCrossed
+							? {upper: Infinity, lower: -Infinity}
+							: {upper: -Infinity, lower: Infinity};
+					} else {
+						var stopLossBounds = {upper: Infinity, lower: -Infinity};
+					}
 				}
 
 				if (!lastOpen) {
@@ -1104,19 +1123,19 @@ dataMiningServices.value('StrategyList', [
 	//     "transaction": { "value": 1, "accumalated": false }
 	// },
 	{
-	    "id": "A2",
+	    "id": "A1",
 	    "name": "Open at 2 sd, close at 1 sd",
 	    "open": { "unit": "std", "value": 2 },
 	    "close": { "unit": "std", "value": 1 },
 	    "transaction": { "value": 1, "accumalated": false }
 	},
-	{
-	    "id": "A1",
-	    "name": "Open at 2 sd, close at 0.5 sd",
-	    "open": { "unit": "std", "value": 2 },
-	    "close": { "unit": "std", "value": 0.5 },
-	    "transaction": { "value": 1, "accumalated": false }
-	},
+	// {
+	//     "id": "A1",
+	//     "name": "Open at 2 sd, close at 0.5 sd",
+	//     "open": { "unit": "std", "value": 2 },
+	//     "close": { "unit": "std", "value": 0.5 },
+	//     "transaction": { "value": 1, "accumalated": false }
+	// },
 	{
 	    "id": "A0",
 	    "name": "Open at 2 sd, close at 0 sd",
@@ -1153,19 +1172,19 @@ dataMiningServices.value('StrategyList', [
 	//     "transaction": { "value": 1, "accumalated": false }
 	// },
 	{
-	    "id": "C0",
+	    "id": "C",
 	    "name": "Open at 1 sd, close at 0 sd",
 	    "open": { "unit": "std", "value": 1 },
 	    "close": { "unit": "std", "value": 0 },
 	    "transaction": { "value": 1, "accumalated": false }
 	},
-	// {
-	//     "id": "D0",
-	//     "name": "Open at 0.5 sd, close at 0 sd",
-	//     "open": { "unit": "std", "value": 0.5 },
-	//     "close": { "unit": "std", "value": 0 },
-	//     "transaction": { "value": 1, "accumalated": false }
-	// },
+	{
+	    "id": "D",
+	    "name": "Open at 0.5 sd, close at 0 sd",
+	    "open": { "unit": "std", "value": 0.5 },
+	    "close": { "unit": "std", "value": 0 },
+	    "transaction": { "value": 1, "accumalated": false }
+	}
 	// {
 	//     "id": "E0",
 	//     "name": "Open at 0.7 sd, close at 0 sd",

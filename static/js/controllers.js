@@ -68,7 +68,7 @@ dataMiningControllers.controller('PairFinderCtrl',
             if (newVal) $scope.stockList = newVal.stocks;
         });
 
-        $scope.startDate = '2009-01-01';
+        $scope.startDate = '2010-01-01';
         $scope.endDate = '2013-12-31';
         $scope.stockCategory = $scope.stockCategories[0];
 
@@ -834,8 +834,7 @@ dataMiningControllers.controller('PairFinderCtrl',
 
         $scope.useDynamicBounds = false;
         $scope.boundWeightRules = [
-            {previousDaysCount: 200, weight: 2},
-            {previousDaysCount: 300, weight: 1}
+            {previousDaysCount: 500, weight: 1}
         ];
 
         $scope.addBoundWeightRule = function() {
@@ -880,6 +879,7 @@ dataMiningControllers.controller('PairFinderCtrl',
 
         $scope.useDynamicDependentVariable = false;
         $scope.dependentVariableWeightRules = [
+            {previousDaysCount: 200, weight: 1.5},
             {previousDaysCount: '#history', weight: 1}
         ];
 

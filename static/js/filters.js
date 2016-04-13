@@ -56,4 +56,14 @@ dataMiningApp
       var median = $window.ss.median(profitPercents);
       return $filter('percentage')(median, 2);
     };
+  }])
+
+  .filter('strategyResult', [function () {
+    return function filter(strategiesResult, id) {
+      if (!strategiesResult) return;
+      var result = strategiesResult.find(function(result) {
+        return result.strategy.id === id;
+      });
+      return result;
+    };
   }]);

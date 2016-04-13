@@ -292,9 +292,10 @@
                 <td ng-bind="pair.score | number: 4"></td>
                 <td ng-bind="pair[strategyResultOverviewPropertyName] | maxProfitPercent"></td>
                 <td ng-bind="pair[strategyResultOverviewPropertyName] | medianProfitPercent" style="border-right: 2px solid #d2d2d2"></td>
-                <td ng-repeat-start="result in pair[strategyResultOverviewPropertyName]"
-                    ng-bind="result.result.openCounts"></td>
-                <td ng-repeat-end ng-bind="result.result.forceClosedProfitPercent | percentage: 2"></td>
+                <td ng-repeat-start="strategy in strategyList"
+                    ng-bind="(pair[strategyResultOverviewPropertyName] | strategyResult: strategy.id).result.openCounts"></td>
+                <td ng-repeat-end
+                    ng-bind="(pair[strategyResultOverviewPropertyName] | strategyResult: strategy.id).result.forceClosedProfitPercent | percentage: 2"></td>
 
                 <!-- <td ng-bind="(result.totalTop3Profit / 3) | percentage: 2"></td>
                 <td ng-bind="(result.totalTop10Profit / 10) | percentage: 2"></td>
