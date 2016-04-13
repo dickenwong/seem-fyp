@@ -529,7 +529,7 @@ dataMiningControllers.controller('PairFinderCtrl',
                 var params = resolved.params;
                 var strategiesResults = resolved.strategiesResults;
                 var strategyA1Result = strategiesResults.find(function(strategyResult) {
-                    return strategyResult.strategy.id === 'A2';
+                    return strategyResult.strategy.id === 'A1';
                 });
                 $scope.strategiesResults = strategiesResults;
                 $scope.strategyGraph = $scope.drawStrategyGraph(
