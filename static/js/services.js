@@ -542,7 +542,7 @@ dataMiningServices.factory('StrategyProcessor',
 				}
 
 				// Find Tradinig Thresholds
-				if ((needUpdate && useDynamicBounds) || !boundsList[i-1]) {
+				if (needUpdate && useDynamicBounds) {
 					var boundWeights = _getWeights(
 						boundWeightRules,
 						upToDateDataset,
@@ -554,7 +554,14 @@ dataMiningServices.factory('StrategyProcessor',
 						boundWeights
 					);
 				} else {
-					var bounds = boundsList[i] = boundsList[i-1];
+					if (boundsList[i-1]) {
+						var bounds = boundsList[i] = boundsList[i-1];
+					} else {
+						var bounds = boundsList[i] = strategyProcessor.getBounds(
+							null, strategy, lastOpen, upToDateDataset,
+							historicalDataset, targetDataset, valuePropertyName
+						);
+					}
 				}
 
 				var value = row[valuePropertyName];
@@ -584,7 +591,6 @@ dataMiningServices.factory('StrategyProcessor',
 				} else if (stopLoss.unit === 'DAY') {
 					var lastAction = actions[actions.length - 1];
 					if (lastOpen) {
-						// console.log(row.day - lastOpen.lastAction)
 						var stopLossBounds = row.day - lastAction.day >= stopLoss.value
 							? {upper: -Infinity, lower: Infinity}
 							: {upper: Infinity, lower: -Infinity};
@@ -945,6 +951,9 @@ dataMiningServices.factory('CointegrationStrategyProcessor', [
 			if (weights) {
 				var std = StatHelper.weightedStd(upToDateDataset, valuePropertyName, weights);
 				var mean = StatHelper.weightedMean(upToDateDataset, valuePropertyName, weights);
+			} else if (!lastBounds) {
+				var std = StatHelper.std(historicalDataset, valuePropertyName);
+				var mean = StatHelper.mean(historicalDataset, valuePropertyName);
 			} else {
 				var std = StatHelper.std(upToDateDataset, valuePropertyName);
 				var mean = StatHelper.mean(upToDateDataset, valuePropertyName);
