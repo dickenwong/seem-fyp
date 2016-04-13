@@ -589,10 +589,17 @@ dataMiningServices.factory('StrategyProcessor',
 							? {upper: -Infinity, lower: Infinity}
 							: {upper: Infinity, lower: -Infinity};
 					} else if (lastAction && lastAction.type === 'STOP_LOSS') {
+						var currentDay = row.day;
 						var zeroCrossed = targetDataset.some(function(row, i) {
 							if (i == 0) return false;
-							if (row.day < lastAction.day) return false;
-							return value * targetDataset[i-1][valuePropertyName] < 0;
+							if (row.day <= lastAction.day || row.day > currentDay) return false;
+							var thisValue = row[valuePropertyName];
+							var prevValue = targetDataset[i-1][valuePropertyName];
+							var crossedMean = (
+								(prevValue < bounds.mean && thisValue >= bounds.mean) ||
+								(prevValue > bounds.mean && thisValue <= bounds.mean)
+							);
+							return crossedMean;
 						});
 						var stopLossBounds = zeroCrossed
 							? {upper: Infinity, lower: -Infinity}
