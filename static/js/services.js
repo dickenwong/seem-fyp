@@ -569,10 +569,18 @@ dataMiningServices.factory('StrategyProcessor',
 							Math.abs(bounds.open.lower - bounds.mean) * stopLoss.value
 					};
 				} else if (stopLoss.unit === 'STD') {
-					var stopLossBounds = {
-						upper: bounds.mean + bounds.std * stopLoss.value,
-						lower: bounds.mean - bounds.std * stopLoss.value
-					};
+					// var lastAction = actions[actions.length - 1];
+					// if (lastAction && lastAction.type === 'STOP_LOSS') {
+					// 	var stopLossBounds = {
+					// 		upper: bounds.mean + bounds.std * (stopLoss.value - 1),
+					// 		lower: bounds.mean - bounds.std * (stopLoss.value - 1)
+					// 	};
+					// } else {
+						var stopLossBounds = {
+							upper: bounds.mean + bounds.std * stopLoss.value,
+							lower: bounds.mean - bounds.std * stopLoss.value
+						};
+					// }
 				}
 
 				if (!lastOpen) {
@@ -812,8 +820,8 @@ dataMiningServices.factory('StrategyProcessor',
 				openAction, closeAction) {
 			var isLongingStock1 = openAction.stock1Action === 'LONG';
 			var isLongingStock2 = openAction.stock2Action === 'LONG';
-			if (openAction.stock1Share < 0) isLongingStock1 = isLongingStock1? 'SHORT' : 'LONG';
-			if (openAction.stock2Share < 0) isLongingStock2 = isLongingStock2? 'SHORT' : 'LONG';
+			if (openAction.stock1Share < 0) isLongingStock1 = isLongingStock1? false : true;
+			if (openAction.stock2Share < 0) isLongingStock2 = isLongingStock2? false : true;
 			if (isLongingStock1 === isLongingStock2) console.log('This pair has same Action');
 
 			var stock1OpenAbsProfit = Math.abs(openAction.stock1AdjClose * openAction.stock1Share);
@@ -899,7 +907,7 @@ dataMiningServices.factory('CointegrationStrategyProcessor', [
 		var formatResult = function(result) {
 			result.actions.forEach(function(action) {
 				if (action.cointegrationFactor > 0) return;
-				action.stock2Share = Math.abs(action.stock2Share);
+				if (action.stock2Share) action.stock2Share = Math.abs(action.stock2Share);
 				if (action.stock2Action === 'LONG') action.stock2Action = 'SHORT';
 				else if (action.stock2Action === 'SHORT') action.stock2Action = 'LONG';
 			});
@@ -1079,7 +1087,7 @@ dataMiningServices.value('StockCategories', [
 	},
 	{
 		name: 'ETF',
-		stocks: '2800.HK, 2801.HK, 2802.HK, 2805.HK, 2808.HK, 2811.HK, 2816.HK, 2817.HK, 2818.HK, 2819.HK, 2821.HK, 2822.HK, 2823.HK, 2824.HK, 2825.HK, 2827.HK, 2828.HK, 2829.HK, 2830.HK, 2832.HK, 2833.HK, 2835.HK, 2836.HK, 2838.HK, 2839.HK, 2840.HK, 2841.HK, 2842.HK, 2844.HK, 2846.HK, 2848.HK, 3001.HK, 3002.HK, 3004.HK, 3005.HK, 3006.HK, 3007.HK, 3008.HK, 3009.HK, 3010.HK, 3011.HK, 3013.HK, 3015.HK, 3016.HK, 3017.HK, 3019.HK, 3020.HK, 3021.HK, 3024.HK, 3025.HK, 3026.HK, 3027.HK, 3029.HK, 3031.HK, 3032.HK, 3035.HK, 3036.HK, 3037.HK, 3039.HK, 3040.HK, 3041.HK, 3043.HK, 3045.HK, 3046.HK, 3048.HK, 3049.HK, 3050.HK, 3051.HK, 3052.HK, 3054.HK, 3055.HK, 3056.HK, 3057.HK, 3060.HK, 3061.HK, 3062.HK, 3063.HK, 3064.HK, 3065.HK, 3066.HK, 3069.HK, 3070.HK, 3071.HK, 3072.HK, 3073.HK, 3075.HK, 3076.HK, 3078.HK, 3081.HK, 3082.HK, 3084.HK, 3085.HK, 3086.HK, 3087.HK, 3089.HK, 3090.HK, 3091.HK, 3092.HK, 3095.HK, 3098.HK, 3099.HK, 3100.HK, 3101.HK, 3102.HK, 3105.HK, 3106.HK, 3107.HK, 3110.HK, 3117.HK, 3118.HK, 3119.HK, 3120.HK, 3121.HK, 3122.HK, 3124.HK, 3126.HK, 3127.HK, 3128.HK, 3129.HK, 3132.HK, 3134.HK, 3136.HK, 3137.HK, 3139.HK, 3140.HK, 3141.HK, 3143.HK, 3145.HK, 3147.HK, 3149.HK, 3150.HK, 3156.HK, 3157.HK, 3160.HK, 3161.HK, 3162.HK, 3165.HK, 3180.HK, 3188.HK, 3199.HK'
+		stocks: '2800.HK, 2822.HK, 2828.HK, 2823.HK, 3188.HK, 3081.HK, 2840.HK, 3147.HK, 0700.HK, 0005.HK, 0941.HK, 1299.HK, 0939.HK, 1398.HK, 0001.HK, 3988.HK, 0388.HK, 2318.HK, 0883.HK, 0002.HK'
 	},
 	{
 		name: 'Dev Testing',
@@ -1102,13 +1110,13 @@ dataMiningServices.value('StrategyList', [
 	    "close": { "unit": "std", "value": 1 },
 	    "transaction": { "value": 1, "accumalated": false }
 	},
-	// {
-	//     "id": "A1",
-	//     "name": "Open at 2 sd, close at 0.5 sd",
-	//     "open": { "unit": "std", "value": 2 },
-	//     "close": { "unit": "std", "value": 0.5 },
-	//     "transaction": { "value": 1, "accumalated": false }
-	// },
+	{
+	    "id": "A1",
+	    "name": "Open at 2 sd, close at 0.5 sd",
+	    "open": { "unit": "std", "value": 2 },
+	    "close": { "unit": "std", "value": 0.5 },
+	    "transaction": { "value": 1, "accumalated": false }
+	},
 	{
 	    "id": "A0",
 	    "name": "Open at 2 sd, close at 0 sd",
@@ -1123,13 +1131,13 @@ dataMiningServices.value('StrategyList', [
 	//     "close": { "unit": "std", "value": 1 },
 	//     "transaction": { "value": 1, "accumalated": false }
 	// },
-	// {
-	//     "id": "B1",
-	//     "name": "Open at 1.5 sd, close at 0.5 sd",
-	//     "open": { "unit": "std", "value": 1.5 },
-	//     "close": { "unit": "std", "value": 0.5 },
-	//     "transaction": { "value": 1, "accumalated": false }
-	// },
+	{
+	    "id": "B1",
+	    "name": "Open at 1.5 sd, close at 0.5 sd",
+	    "open": { "unit": "std", "value": 1.5 },
+	    "close": { "unit": "std", "value": 0.5 },
+	    "transaction": { "value": 1, "accumalated": false }
+	},
 	{
 	    "id": "B0",
 	    "name": "Open at 1.5 sd, close at 0 sd",
@@ -1151,11 +1159,18 @@ dataMiningServices.value('StrategyList', [
 	    "close": { "unit": "std", "value": 0 },
 	    "transaction": { "value": 1, "accumalated": false }
 	},
-	{
-	    "id": "D0",
-	    "name": "Open at 0.5 sd, close at 0 sd",
-	    "open": { "unit": "std", "value": 0.5 },
-	    "close": { "unit": "std", "value": 0 },
-	    "transaction": { "value": 1, "accumalated": false }
-	}
+	// {
+	//     "id": "D0",
+	//     "name": "Open at 0.5 sd, close at 0 sd",
+	//     "open": { "unit": "std", "value": 0.5 },
+	//     "close": { "unit": "std", "value": 0 },
+	//     "transaction": { "value": 1, "accumalated": false }
+	// },
+	// {
+	//     "id": "E0",
+	//     "name": "Open at 0.7 sd, close at 0 sd",
+	//     "open": { "unit": "std", "value": 0.7 },
+	//     "close": { "unit": "std", "value": 0 },
+	//     "transaction": { "value": 1, "accumalated": false }
+	// },
 ]);

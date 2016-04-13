@@ -19,12 +19,12 @@ dataMiningApp
         else return '-'
       } else if (action.type === 'OPEN') {
         return (
-          _param('Price') + ' (' +
+          _param('AdjClose') + ' (' +
           _param('Action') + ' ' +
           $filter('number')(_param('Share'), 5) + ')'
         );
       } else {
-        return _param('Price');
+        return _param('AdjClose');
       }
 
       function _param(paramName) {
