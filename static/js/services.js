@@ -688,6 +688,8 @@ dataMiningServices.factory('StrategyProcessor',
 			// t stands for Transaction in this function
 			var openCounts = 0;
 			var closeCounts = 0;
+			var stopLossCounts = 0;
+
 			var profit = 0;
 			var transactionCost = 0;
 			var holdingDuration = 0;
@@ -736,8 +738,9 @@ dataMiningServices.factory('StrategyProcessor',
 					);
 
 					action.lastOpen = lastOpen;
-					if (action.type === 'CLOSE'|| action.type === 'STOP_LOSS') {
-						closeCounts += 1;
+					if (action.type === 'CLOSE' || action.type === 'STOP_LOSS') {
+						if (action.type === 'CLOSE') closeCounts += 1;
+						else if (action.type === 'STOP_LOSS') stopLossCounts += 1;
 						holdingDuration += thisHoldingDuration;
 						action.profit = thisProfit;
 						action.transactionCost = thisTransactionCost;
@@ -775,6 +778,8 @@ dataMiningServices.factory('StrategyProcessor',
 			var result = {
 				openCounts: openCounts,
 				closeCounts: closeCounts,
+				stopLossCounts: stopLossCounts,
+
 				isHolding: !!lastOpen,
 				profit: profit,
 				transactionCost: transactionCost,
@@ -1114,32 +1119,29 @@ dataMiningServices.value('StockCategories', [
 		name: 'Investments & Assets Management',
 		stocks: '0053.HK, 0068.HK, 0080.HK, 0120.HK, 0133.HK, 0165.HK, 0174.HK, 0204.HK, 0273.HK, 0286.HK, 0310.HK, 0339.HK, 0356.HK, 0372.HK, 0378.HK, 0383.HK, 0412.HK, 0428.HK, 0430.HK, 0508.HK, 0575.HK, 0612.HK, 0613.HK, 0619.HK, 0666.HK, 0721.HK, 0768.HK, 0770.HK, 0806.HK, 0810.HK'
 	},
-	{
-		name: 'E-Commerce & Internet Services',
-		stocks: '0250.HK, 0327.HK, 0395.HK, 0400.HK, 0434.HK, 0484.HK, 0536.HK, 0543.HK, 0673.HK, 0700.HK, 0777.HK, 0799.HK, 1022.HK, 1026.HK, 1094.HK, 1980.HK, 2100.HK, 2280.HK, 6899.HK, 8007.HK, 8026.HK, 8081.HK, 8121.HK, 8206.HK, 8255.HK, 8266.HK, 8267.HK, 8317.HK, 8361.HK, 8400.HK'
-	},
+	// {
+	// 	name: 'E-Commerce & Internet Services',
+	// 	stocks: '0250.HK, 0327.HK, 0395.HK, 0400.HK, 0434.HK, 0484.HK, 0536.HK, 0543.HK, 0673.HK, 0700.HK, 0777.HK, 0799.HK, 1022.HK, 1026.HK, 1094.HK, 1980.HK, 2100.HK, 2280.HK, 6899.HK, 8007.HK, 8026.HK, 8081.HK, 8121.HK, 8206.HK, 8255.HK, 8266.HK, 8267.HK, 8317.HK, 8361.HK, 8400.HK'
+	// },
 	{
 		name: 'Petroleum & Gases',
-		stocks: '0007.HK, 0091.HK, 0135.HK, 0166.HK, 0171.HK, 0228.HK, 0260.HK, 0332.HK, 0338.HK, 0342.HK, 0346.HK, 0353.HK, 0386.HK, 0467.HK, 0689.HK, 0702.HK, 0850.HK, 0852.HK, 0857.HK, 0883.HK, 0933.HK, 0934.HK, 1102.HK, 1103.HK, 1192.HK, 1205.HK, 1555.HK, 2012.HK, 2386.HK, 2686.HK'
+		stocks: '0007.HK, 0091.HK, 0135.HK, 0166.HK, 0171.HK, 0228.HK, 0260.HK, 0332.HK, 0338.HK, 0342.HK, 0346.HK, 0386.HK, 0467.HK, 0702.HK, 0850.HK, 0852.HK, 0857.HK, 0883.HK, 0933.HK, 0934.HK, 1102.HK, 1103.HK, 1192.HK, 1205.HK, 1555.HK, 2012.HK, 2386.HK, 2686.HK'
 	},
 	{
 		name: 'ETF',
 		stocks: '2800.HK, 2822.HK, 2828.HK, 2823.HK, 3188.HK, 3081.HK, 2840.HK, 3147.HK, 0700.HK, 0005.HK, 0941.HK, 1299.HK, 0939.HK, 1398.HK, 0001.HK, 3988.HK, 0388.HK, 2318.HK, 0883.HK, 0002.HK'
 	},
 	{
-		name: 'Dev Testing',
-		stocks: '0001.HK, 2800.HK, 2833.HK'
+		name: 'Hang Seng Index & ETF',
+		stocks: '0001.HK, 0002.HK, 0003.HK, 0004.HK, 0005.HK, 0006.HK, 0011.HK, 0012.HK, 0016.HK, 0017.HK, 0019.HK, 0023.HK, 0027.HK, 0066.HK, 0083.HK, 0101.HK, 0135.HK, 0144.HK, 0151.HK, 0267.HK, 0293.HK, 0322.HK, 0386.HK, 0388.HK, 0494.HK, 0688.HK, 0700.HK, 0762.HK, 0823.HK, 0836.HK, 2800.HK'
 	}
+	// {
+	// 	name: 'Dev Testing',
+	// 	stocks: '0001.HK, 2800.HK, 2833.HK'
+	// }
 ]);
 
 dataMiningServices.value('StrategyList', [
-	// {
-	//     "id": "A3",
-	//     "name": "Open at 2 sd, close at 1.5 sd",
-	//     "open": { "unit": "std", "value": 2 },
-	//     "close": { "unit": "std", "value": 1.5 },
-	//     "transaction": { "value": 1, "accumalated": false }
-	// },
 	{
 	    "id": "A1",
 	    "name": "Open at 2 sd, close at 1 sd",
@@ -1147,13 +1149,6 @@ dataMiningServices.value('StrategyList', [
 	    "close": { "unit": "std", "value": 1 },
 	    "transaction": { "value": 1, "accumalated": false }
 	},
-	// {
-	//     "id": "A1",
-	//     "name": "Open at 2 sd, close at 0.5 sd",
-	//     "open": { "unit": "std", "value": 2 },
-	//     "close": { "unit": "std", "value": 0.5 },
-	//     "transaction": { "value": 1, "accumalated": false }
-	// },
 	{
 	    "id": "A0",
 	    "name": "Open at 2 sd, close at 0 sd",
@@ -1161,13 +1156,6 @@ dataMiningServices.value('StrategyList', [
 	    "close": { "unit": "std", "value": 0 },
 	    "transaction": { "value": 1, "accumalated": false }
 	},
-	// {
-	//     "id": "B2",
-	//     "name": "Open at 1.5 sd, close at 1 sd",
-	//     "open": { "unit": "std", "value": 1.5 },
-	//     "close": { "unit": "std", "value": 1 },
-	//     "transaction": { "value": 1, "accumalated": false }
-	// },
 	{
 	    "id": "B1",
 	    "name": "Open at 1.5 sd, close at 0.5 sd",
@@ -1182,13 +1170,6 @@ dataMiningServices.value('StrategyList', [
 	    "close": { "unit": "std", "value": 0 },
 	    "transaction": { "value": 1, "accumalated": false }
 	},
-	// {
-	//     "id": "C1",
-	//     "name": "Open at 1 sd, close at 0.5 sd",
-	//     "open": { "unit": "std", "value": 1 },
-	//     "close": { "unit": "std", "value": 0.5 },
-	//     "transaction": { "value": 1, "accumalated": false }
-	// },
 	{
 	    "id": "C",
 	    "name": "Open at 1 sd, close at 0 sd",
@@ -1203,11 +1184,4 @@ dataMiningServices.value('StrategyList', [
 	    "close": { "unit": "std", "value": 0 },
 	    "transaction": { "value": 1, "accumalated": false }
 	}
-	// {
-	//     "id": "E0",
-	//     "name": "Open at 0.7 sd, close at 0 sd",
-	//     "open": { "unit": "std", "value": 0.7 },
-	//     "close": { "unit": "std", "value": 0 },
-	//     "transaction": { "value": 1, "accumalated": false }
-	// },
 ]);

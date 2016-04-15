@@ -249,7 +249,7 @@ dataMiningControllers.controller('PairFinderCtrl',
         var baseGoogleChartOptions = {
             legend: {position: 'right', alignment: 'center'},
             width: 750,
-            height: 450,
+            height: 350,
             lineWidth: 1,
             vAxis: {format: '#.##'},
             hAxis: {
